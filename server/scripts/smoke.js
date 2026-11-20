@@ -27,8 +27,9 @@ c = await call('POST', '/cases', { unit_id: 'unit_4b', contact_id: 'c_202', text
 c = await call('POST', `/cases/${c.id}/approve`);
 job = (await call('GET', `/cases/${c.id}`)).job;
 console.log('  payload fields:', Object.keys(job.payload.fields).join(', '), '| withheld:', job.payload.withheld.map((w) => w.field).join(','));
-const avail = await call('GET', `/connector/partners/${job.partner_id}/availability`);
-r = await call('POST', `/centrix/jobs/${job.id}/status`, { status: 'accepted', slot_ids: avail.filter((s) => s.status === 'free').slice(0, 3).map((s) => s.id) });
+const free = await call('GET', `/connector/partners/${job.partner_id}/free-windows?days=3`);
+const picks = [free[0], free.find((w) => w.start >= free[0].end), free.find((w) => w.start.slice(0, 10) !== free[0].start.slice(0, 10))].filter(Boolean);
+r = await call('POST', `/centrix/jobs/${job.id}/status`, { status: 'accepted', windows: picks });
 step('partner accepts + slots', r);
 c = await call('GET', `/cases/${c.id}`);
 c = await call('POST', `/cases/${c.id}/confirm-slot`, { slot_id: c.offered_slots[0].id, share_phone: true });

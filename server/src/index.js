@@ -4,7 +4,7 @@ import os from 'node:os';
 import { getDb, reset, save } from './store.js';
 import * as flow from './flow.js';
 import { FIELD_LABELS } from './connector.js';
-import { matchPartners } from './matching.js';
+import { matchPartners, freeWindows } from './matching.js';
 import { aiProvider } from './triage.js';
 import { buildStats } from './stats.js';
 
@@ -225,6 +225,14 @@ app.get('/tenants', wrap(() => getDb().contacts.filter((c) => c.role === 'tenant
 app.get('/connector/partners', wrap(() => getDb().partners.map((p) => p.connector)));
 app.get('/connector/fields', wrap(() => FIELD_LABELS));
 app.get('/partners', wrap(() => getDb().partners.map(({ connector, ...p }) => p)));
+
+// Suggested free windows (working hours minus everything in the calendar).
+app.get('/connector/partners/:id/free-windows', wrap((req) => {
+  const partner = getDb().partners.find((p) => p.id === req.params.id);
+  if (!partner) throw new flow.FlowError('Unknown partner', 404);
+  const days = Math.min(14, Number(req.query.days) || 7);
+  return freeWindows(getDb(), partner, { until: new Date(Date.now() + days * 864e5), hours: Number(req.query.hours) || 2 });
+}));
 
 app.get('/connector/partners/:id/availability', wrap((req) => {
   const from = req.query.from ? new Date(req.query.from) : new Date();

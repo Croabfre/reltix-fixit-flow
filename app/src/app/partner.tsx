@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { API, api, eur, fmtDay, fmtSlot, fmtTime, fmtWhen, usePoll } from '../lib/api';
 import { Button, Card, Choice, Display, ErrorNote, H2, H3, KV, Label, Muted, P, Row, Small, StatusChip, useWide } from '../lib/ui';
 import { colors, fonts, layout, radius, space } from '../lib/theme';
+import CalendarGrid, { CalEvent } from '../lib/calendar';
 
 type Route = { name: 'jobs' } | { name: 'schedule' } | { name: 'history' } | { name: 'profile' } | { name: 'job'; id: string; from: Tab };
 type Tab = 'jobs' | 'schedule' | 'history' | 'profile';
@@ -46,10 +47,10 @@ export default function PartnerApp() {
         </View>
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: space(24) }} keyboardShouldPersistTaps="handled">
-        <View style={[st.column, { paddingTop: space(10), gap: space(8) }]}>
+        <View style={[st.column, { paddingTop: space(10), gap: space(8) }, route.name === 'schedule' && { maxWidth: 1240 }]}>
           <ErrorNote error={jobs.error} />
           {jobs.data && route.name === 'jobs' && <Jobs jobs={all} partner={partner} open={open} />}
-          {jobs.data && route.name === 'schedule' && <Schedule partnerId={partnerId} jobs={all} open={open} />}
+          {jobs.data && route.name === 'schedule' && <Schedule partner={partner} partnerId={partnerId} jobs={all} open={open} />}
           {jobs.data && route.name === 'history' && <History jobs={all} open={open} />}
           {route.name === 'profile' && (
             <Profile partner={partner} partners={partners.data ?? []} onSwitch={(id) => { setPartnerId(id); setRoute({ name: 'jobs' }); }} />
@@ -156,68 +157,88 @@ function googleCalendarLink(j: any) {
   return `https://calendar.google.com/calendar/render?${q.toString()}`;
 }
 
-function Schedule({ partnerId, jobs, open }: { partnerId: string; jobs: any[]; open: (id: string) => void }) {
-  const slots = usePoll<any[]>(`/connector/partners/${partnerId}/availability`, 5000);
-  const feed = `${API}/connector/partners/${partnerId}/calendar.ics`;
-  const days = useMemo(() => {
-    const map = new Map<string, any[]>();
-    for (const s of slots.data ?? []) {
-      const k = new Date(s.start).toDateString();
-      if (!map.has(k)) map.set(k, []);
-      map.get(k)!.push(s);
+/** Turn the partner's calendar entries into calendar blocks. Free time is not listed – it's the gaps. */
+function calendarEvents(slots: any[], jobs: any[], open?: (id: string) => void): CalEvent[] {
+  const out: CalEvent[] = [];
+  for (const s of slots) {
+    if (s.status === 'booked') {
+      const j = jobs.find((x) => x.slot_id === s.id && !declined(x));
+      out.push({ id: s.id, start: s.start, end: s.end, kind: 'visit', title: j?.title ?? 'centrix visit', sub: j?.payload.fields['property.address'], onPress: j && open ? () => open(j.id) : undefined });
+    } else if (s.status === 'offered') {
+      const j = jobs.find((x) => x.offered_slot_ids?.includes(s.id));
+      out.push({ id: s.id, start: s.start, end: s.end, kind: 'offered', title: 'Offered to tenant', sub: j?.title, onPress: j && open ? () => open(j.id) : undefined });
+    } else if (s.status === 'busy') {
+      out.push({ id: s.id, start: s.start, end: s.end, kind: 'busy', title: s.label ?? 'Busy' });
     }
-    return [...map.entries()];
-  }, [slots.data]);
-  const jobFor = (slotId: string) => jobs.find((j) => j.slot_id === slotId && !declined(j)) ?? jobs.find((j) => j.offered_slot_ids?.includes(slotId) && waiting(j));
+  }
+  return out;
+}
+
+const daysFrom = (offset: number, n: number) =>
+  Array.from({ length: n }, (_, i) => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + offset + i);
+    return d;
+  });
+
+function CalendarLegend({ proposal }: { proposal?: boolean }) {
+  const items: [string, string, string][] = [
+    ['centrix visit', '#F4EEF3', colors.primary],
+    ['Other appointment', '#EFE8E1', '#CDBFB2'],
+    ['Offered to a tenant', colors.accentSoft, colors.accent],
+  ];
+  if (proposal) items.push(['Your new proposal', colors.accent, colors.accentHover]);
+  return (
+    <Row gap={14}>
+      {items.map(([l, bg, b]) => (
+        <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: bg, borderLeftWidth: 3, borderLeftColor: b }} />
+          <Small>{l}</Small>
+        </View>
+      ))}
+    </Row>
+  );
+}
+
+function Schedule({ partner, partnerId, jobs, open }: { partner: any; partnerId: string; jobs: any[]; open: (id: string) => void }) {
+  const [week, setWeek] = useState(0);
+  const from = daysFrom(week * 7, 1)[0];
+  const to = daysFrom(week * 7 + 7, 1)[0];
+  const slots = usePoll<any[]>(`/connector/partners/${partnerId}/availability?from=${from.toISOString()}&to=${to.toISOString()}`, 5000);
+  const feed = `${API}/connector/partners/${partnerId}/calendar.ics`;
+  const events = calendarEvents(slots.data ?? [], jobs, open);
+  const visits = events.filter((e) => e.kind === 'visit').length;
 
   return (
     <>
       <View style={{ gap: space(3) }}>
         <Display>Schedule</Display>
-        <Muted>Your next two weeks. Booked visits come from centrix; free slots are what tenants can pick from.</Muted>
+        <Muted>Where you need to be. The empty space is your free time – tenants can only be offered times from there.</Muted>
       </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: space(3) }}>
+        <Row gap={8}>
+          <Button title="‹" size="sm" variant="secondary" disabled={week === 0} onPress={() => setWeek(week - 1)} />
+          <P style={{ fontFamily: fonts.medium }}>
+            {fmtDay(from.toISOString())} – {fmtDay(new Date(to.getTime() - 864e5).toISOString())}
+          </P>
+          <Button title="›" size="sm" variant="secondary" disabled={week >= 1} onPress={() => setWeek(week + 1)} />
+        </Row>
+        <Small>{visits} centrix visit{visits === 1 ? '' : 's'} this week</Small>
+      </View>
+      <CalendarLegend />
+      <Card compact>
+        <CalendarGrid days={daysFrom(week * 7, 7)} events={events} workingHours={partner?.working_hours} />
+      </Card>
       <Card tone="accent">
         <Label>Google Calendar</Label>
-        <P>Keep visits in your own calendar: subscribe once and new bookings appear by themselves, or add single visits below.</P>
+        <P>Subscribe once and new bookings appear in your own calendar by themselves. Single visits can be added from the job page.</P>
         <Row gap={12}>
           <Button title="Subscribe in Google Calendar" onPress={() => Linking.openURL(`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(feed.replace(/^https?:/, 'webcal:'))}`)} />
           <Button title="Download .ics" variant="secondary" onPress={() => Linking.openURL(feed)} />
         </Row>
         <Small>Subscribing needs the centrix server on a public address; on a laptop demo use "Download .ics" and import it in Google Calendar.</Small>
       </Card>
-      {days.map(([day, list]) => (
-        <View key={day} style={{ gap: space(2) }}>
-          <Label>{fmtDay(list[0].start)}</Label>
-          <Card compact style={{ gap: 0, paddingVertical: space(1) }}>
-            {list.map((s, i) => {
-              const j = s.status !== 'free' ? jobFor(s.id) : null;
-              return (
-                <View key={s.id} style={[st.slotRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
-                  <Text style={st.slotTime}>
-                    {fmtTime(s.start)}–{fmtTime(s.end)}
-                  </Text>
-                  {s.status === 'booked' && j ? (
-                    <View style={{ flex: 1, gap: space(2) }}>
-                      <Pressable onPress={() => open(j.id)}>
-                        <P style={{ fontFamily: fonts.medium }}>{j.title}</P>
-                        <Small>{j.payload.fields['property.address']}</Small>
-                      </Pressable>
-                      <Button title="Add to Google Calendar" size="sm" variant="secondary" style={{ alignSelf: 'flex-start' }} onPress={() => Linking.openURL(googleCalendarLink({ ...j, slot: s }))} />
-                    </View>
-                  ) : s.status === 'offered' ? (
-                    <Pressable onPress={() => j && open(j.id)} style={{ flex: 1 }}>
-                      <P style={{ color: colors.warning }}>Offered to tenant</P>
-                      {j ? <Small numberOfLines={1}>{j.title}</Small> : null}
-                    </Pressable>
-                  ) : (
-                    <Muted style={{ flex: 1 }}>Free</Muted>
-                  )}
-                </View>
-              );
-            })}
-          </Card>
-        </View>
-      ))}
     </>
   );
 }
@@ -395,49 +416,86 @@ const Fact = ({ k, v }: { k: string; v: string }) => (
   </Text>
 );
 
+/**
+ * Accepting a job: the craftsman sees his whole calendar and taps free time
+ * to propose up to three windows. Busy times can't be picked.
+ */
 function OfferSlots({ job, onDone }: { job: any; onDone: () => void }) {
-  const avail = usePoll<any[]>(`/connector/partners/${job.partner_id}/availability`, 5000);
-  const free = useMemo(
-    () => (avail.data ?? []).filter((s) => s.status === 'free' && !(job.rejected_slot_ids ?? []).includes(s.id)),
-    [avail.data, job.rejected_slot_ids],
-  );
-  const [picked, setPicked] = useState<string[] | null>(null);
+  // fixed range (start of today + 8 days) so the polled URL doesn't change on every render
+  const [range] = useState(() => ({ from: daysFrom(0, 1)[0].toISOString(), to: daysFrom(8, 1)[0].toISOString() }));
+  const slots = usePoll<any[]>(`/connector/partners/${job.partner_id}/availability?from=${range.from}&to=${range.to}`, 5000);
+  const [picked, setPicked] = useState<{ start: string; end: string }[]>([]);
+  const [hours, setHours] = useState(2);
   const [err, setErr] = useState<string | null>(null);
-  useEffect(() => {
-    if (picked === null && free.length) setPicked(free.slice(0, 3).map((s) => s.id));
-  }, [free, picked]);
-  const sel = picked ?? [];
   const reschedule = job.case_status === 'no_slot_fits';
+  const urgent = ['high', 'emergency'].includes(job.payload.fields['case.urgency']);
 
+  const add = (start: Date) => {
+    const w = { start: start.toISOString(), end: new Date(start.getTime() + hours * 3600e3).toISOString() };
+    if (picked.some((p) => new Date(w.start) < new Date(p.end) && new Date(w.end) > new Date(p.start))) return;
+    if (picked.length >= 3) return setErr('Three options are enough – remove one to pick another.');
+    setErr(null);
+    setPicked([...picked, w].sort((a, b) => a.start.localeCompare(b.start)));
+  };
+  const remove = (start: string) => setPicked(picked.filter((p) => p.start !== start));
+  const suggest = async () => {
+    const free: any[] = await api(`/connector/partners/${job.partner_id}/free-windows?days=${urgent ? 4 : 6}&hours=${hours}`);
+    const out: any[] = [];
+    for (const w of free) {
+      if (out.length >= 3) break;
+      if (out.some((o) => o.start.slice(0, 10) === w.start.slice(0, 10) && Math.abs(new Date(o.start).getTime() - new Date(w.start).getTime()) < 3 * 3600e3)) continue;
+      out.push(w);
+    }
+    setPicked(out);
+  };
   const send = (body: object) => async () => {
     try {
       await api(`/centrix/jobs/${job.id}/status`, 'POST', body);
+      setPicked([]);
       onDone();
     } catch (e: any) {
       setErr(e.message);
     }
   };
 
+  const events: CalEvent[] = [
+    ...calendarEvents(slots.data ?? [], []),
+    ...picked.map((p) => ({ id: `pick_${p.start}`, start: p.start, end: p.end, kind: 'proposal' as const, title: 'Offer to tenant', sub: 'Tap to remove', onPress: () => remove(p.start) })),
+  ];
+
   return (
     <View style={{ gap: 16 }}>
-      <Label>{reschedule ? 'Tenant needs other times' : 'Your free slots'}</Label>
+      <Label>{reschedule ? 'Tenant needs other times' : 'Pick times to offer the tenant'}</Label>
       {reschedule && job.tenant_note ? <P>“{job.tenant_note}”</P> : null}
-      <Row gap={6}>
-        {free.map((s) => (
-          <Choice
-            key={s.id}
-            label={fmtSlot(s)}
-            selected={sel.includes(s.id)}
-            onPress={() => setPicked(sel.includes(s.id) ? sel.filter((x) => x !== s.id) : [...sel, s.id])}
-          />
+      <Muted>
+        Tap free time in your calendar to propose a {hours}-hour window{urgent ? ' – this job is urgent, so the next two days are best' : ''}. Pick up to three.
+      </Muted>
+      <Row gap={8}>
+        <Small>Visit length</Small>
+        {[1, 2, 3].map((h) => (
+          <Choice key={h} label={`${h} h`} selected={hours === h} onPress={() => setHours(h)} />
         ))}
-        {avail.data && free.length === 0 && <Muted>No free slots in your calendar.</Muted>}
+        <Button title="Suggest times" size="sm" variant="secondary" onPress={suggest} />
       </Row>
+      <CalendarLegend proposal />
+      <View style={{ backgroundColor: colors.card, borderRadius: radius.md, padding: 10 }}>
+        <CalendarGrid days={daysFrom(0, 6)} events={events} onPickTime={add} pickHours={hours} colWidth={150} hourHeight={44} />
+      </View>
+      {picked.length > 0 && (
+        <View style={{ gap: 6 }}>
+          {picked.map((p) => (
+            <Row key={p.start} style={{ justifyContent: 'space-between' }}>
+              <P style={{ fontFamily: fonts.medium }}>{fmtSlot(p)}</P>
+              <Button title="Remove" size="sm" variant="ghost" onPress={() => remove(p.start)} />
+            </Row>
+          ))}
+        </View>
+      )}
       <Button
-        title={reschedule ? `Offer ${sel.length} new time${sel.length === 1 ? '' : 's'}` : `Accept & offer ${sel.length} slot${sel.length === 1 ? '' : 's'}`}
+        title={picked.length ? `${reschedule ? 'Offer' : 'Accept & offer'} ${picked.length} time${picked.length === 1 ? '' : 's'}` : 'Pick at least one time'}
         size="lg"
-        disabled={!sel.length}
-        onPress={send({ status: reschedule ? 'slots_offered' : 'accepted', slot_ids: sel })}
+        disabled={!picked.length}
+        onPress={send({ status: reschedule ? 'slots_offered' : 'accepted', windows: picked })}
       />
       {!reschedule && (
         <Row gap={6}>

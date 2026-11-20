@@ -9,12 +9,49 @@ export function leadTimeHours(partner, urgency) {
   return lt[urgency] ?? lt.normal ?? 120;
 }
 
+const BLOCKING = new Set(['busy', 'booked', 'offered']);
+
+/**
+ * Free windows in a partner's calendar: inside his working hours, not
+ * overlapping anything he already has (busy, booked, or offered to a tenant).
+ */
+export function freeWindows(db, partner, { from = new Date(), until, hours = 2, max = 50 } = {}) {
+  const end = until ?? new Date(from.getTime() + 14 * 24 * HOUR);
+  const blocks = db.slots
+    .filter((s) => s.partner_id === partner.id && BLOCKING.has(s.status))
+    .map((s) => [new Date(s.start).getTime(), new Date(s.end).getTime()]);
+  const wh = partner.working_hours ?? { weekday: [7, 18], saturday: [8, 13] };
+  const earliest = from.getTime() + 2 * HOUR; // nobody can be there in under two hours
+  const out = [];
+  const day = new Date(from);
+  day.setHours(0, 0, 0, 0);
+  for (; day.getTime() < end.getTime() && out.length < max; day.setDate(day.getDate() + 1)) {
+    const dow = day.getDay();
+    const span = dow === 0 ? null : dow === 6 ? wh.saturday : wh.weekday;
+    if (!span) continue;
+    for (let h = span[0]; h + hours <= span[1]; h += 1) {
+      const s = new Date(day);
+      s.setHours(h, 0, 0, 0);
+      const a = s.getTime();
+      const b = a + hours * HOUR;
+      if (a < earliest || a > end.getTime()) continue;
+      if (blocks.some(([x, y]) => a < y && b > x)) continue;
+      out.push({ start: new Date(a).toISOString(), end: new Date(b).toISOString() });
+      if (out.length >= max) break;
+    }
+  }
+  return out;
+}
+
+export function overlapsBusy(db, partnerId, startIso, endIso) {
+  const a = new Date(startIso).getTime();
+  const b = new Date(endIso).getTime();
+  return db.slots.some((s) => s.partner_id === partnerId && BLOCKING.has(s.status) && a < new Date(s.end).getTime() && b > new Date(s.start).getTime());
+}
+
 export function freeSlotsInWindow(db, partner, urgency, from = new Date()) {
-  const until = from.getTime() + leadTimeHours(partner, urgency) * HOUR;
-  return db.slots
-    .filter((s) => s.partner_id === partner.id && s.status === 'free')
-    .filter((s) => new Date(s.start).getTime() > from.getTime() && new Date(s.start).getTime() <= until)
-    .sort((a, b) => a.start.localeCompare(b.start));
+  const until = new Date(from.getTime() + leadTimeHours(partner, urgency) * HOUR);
+  return freeWindows(db, partner, { from, until, max: 5 });
 }
 
 export function estimate(partner, serviceCode = 'heating.repair') {
@@ -36,7 +73,7 @@ export function matchPartners(db, kase, { exclude = [] } = {}) {
       { label: `Trade: ${kase.trade}`, ok: p.trades.includes(kase.trade) },
       { label: `Covers ${property.postcode}`, ok: p.postcodes.includes(property.postcode) },
       { label: `Handles ${property.heating_label.toLowerCase()}`, ok: kase.trade !== 'heating' || p.heating_types.includes(property.heating_type) },
-      { label: `Free slot within ${leadTimeHours(p, kase.urgency)}h`, ok: slots.length > 0 },
+      { label: `Free time within ${leadTimeHours(p, kase.urgency)}h`, ok: slots.length > 0 },
       { label: 'Not declined this case', ok: !exclude.includes(p.id) },
     ];
     const eligible = checks.every((c) => c.ok);

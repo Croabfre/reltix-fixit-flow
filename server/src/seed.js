@@ -177,6 +177,7 @@ export function buildSeed() {
         reviews: 212,
         hourly_rate: 68,
         contact_person: 'Thomas Schmitz',
+        working_hours: { weekday: [7, 18], saturday: [8, 13] },
         connector: manifest('p_schmitz', 'Wärmetechnik Schmitz GmbH', { callout: 49, hourly: 68 }),
       },
       {
@@ -190,6 +191,7 @@ export function buildSeed() {
         reviews: 97,
         hourly_rate: 62,
         contact_person: 'Sandra Meyer',
+        working_hours: { weekday: [7, 18], saturday: [8, 13] },
         connector: manifest('p_meyer', 'Haustechnik Meyer', { callout: 39, hourly: 62 }),
       },
       {
@@ -203,6 +205,7 @@ export function buildSeed() {
         reviews: 341,
         hourly_rate: 74,
         contact_person: 'Ralf Krüger',
+        working_hours: { weekday: [7, 18], saturday: [8, 13] },
         connector: manifest('p_krueger', 'Heizung Krüger & Sohn', { callout: 55, hourly: 74 }),
       },
       {
@@ -216,6 +219,7 @@ export function buildSeed() {
         reviews: 58,
         hourly_rate: 79,
         contact_person: 'Jan Lenzen',
+        working_hours: { weekday: [7, 18], saturday: [8, 13] },
         connector: manifest('p_eifel', 'Eifel Wärmepumpen-Service', { callout: 59, hourly: 79 }),
       },
       // Handymen: everything that isn't a specialist trade (furniture, doors, locks, small fixes)
@@ -230,6 +234,7 @@ export function buildSeed() {
         reviews: 184,
         hourly_rate: 45,
         contact_person: 'Uwe Peters',
+        working_hours: { weekday: [7, 18], saturday: [8, 13] },
         connector: manifest('p_peters', 'Hausmeisterservice Peters', { callout: 29, hourly: 45 }, 'handyman'),
       },
       {
@@ -243,34 +248,14 @@ export function buildSeed() {
         reviews: 76,
         hourly_rate: 48,
         contact_person: 'Selin Aydın',
+        working_hours: { weekday: [7, 18], saturday: [8, 13] },
         connector: manifest('p_koeln', 'Köln Haus Service', { callout: 32, hourly: 48 }, 'handyman'),
       },
     ],
 
-    slots: [
-      // Schmitz: free tomorrow and the day after
-      slot('s_sch_1', 'p_schmitz', 1, 8),
-      slot('s_sch_2', 'p_schmitz', 1, 13),
-      slot('s_sch_3', 'p_schmitz', 2, 9),
-      slot('s_sch_4', 'p_schmitz', 2, 15),
-      slot('s_sch_5', 'p_schmitz', 3, 10),
-      // Meyer: also within 48h (backup if Schmitz declines)
-      slot('s_mey_1', 'p_meyer', 1, 10),
-      slot('s_mey_2', 'p_meyer', 2, 14),
-      slot('s_mey_3', 'p_meyer', 2, 16),
-      // Krüger: best rating, but fully booked until next week
-      slot('s_kru_1', 'p_krueger', 6, 9),
-      slot('s_kru_2', 'p_krueger', 7, 13),
-      // Eifel: would be available, but does not cover the postcode / gas heating
-      slot('s_eif_1', 'p_eifel', 1, 9),
-      // Handymen
-      slot('s_pet_1', 'p_peters', 1, 9),
-      slot('s_pet_2', 'p_peters', 1, 14),
-      slot('s_pet_3', 'p_peters', 2, 11),
-      slot('s_pet_4', 'p_peters', 3, 15),
-      slot('s_koe_1', 'p_koeln', 1, 10),
-      slot('s_koe_2', 'p_koeln', 2, 13),
-    ],
+    // Each partner's calendar: what he is already doing (busy). Free time is
+    // whatever is left inside his working hours – centrix computes it.
+    slots: partnerCalendars(),
 
     cases: [],
     jobs: [],
@@ -733,4 +718,41 @@ function addOperationsHistory(db) {
     if (rnd() < 0.12) p.energy_certificate.valid_until = date(nowMs + (10 + rnd() * 100) * DAY);
     if (p.heating_system?.last_service && rnd() < 0.15) p.heating_system.last_service = date(nowMs - (260 + rnd() * 100) * DAY);
   }
+}
+
+// Busy blocks for the next two weeks – other customers, quotes, paperwork.
+// Krüger is fully booked for five days, so matching visibly skips him.
+function partnerCalendars() {
+  let seed = 777;
+  const rnd = () => {
+    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const labels = {
+    heating: ['Boiler service – private customer', 'Quote visit', 'Heating replacement', 'Gas safety check', 'Office / paperwork'],
+    general: ['Kitchen fitting', 'Door adjustment – other client', 'Stairwell repairs', 'Quote visit', 'Office / paperwork'],
+  };
+  const out = [];
+  const add = (pid, day, startH, hours, label) => {
+    const s0 = at(day, Math.floor(startH), Math.round((startH % 1) * 60));
+    out.push({ id: `s_${pid}_${day}_${startH}`, partner_id: pid, start: s0, end: new Date(new Date(s0).getTime() + hours * HOUR).toISOString(), status: 'busy', label });
+  };
+  const partners = { p_schmitz: 'heating', p_meyer: 'heating', p_krueger: 'heating', p_eifel: 'heating', p_peters: 'general', p_koeln: 'general' };
+  for (const [pid, kind] of Object.entries(partners)) {
+    for (let day = 0; day < 15; day++) {
+      const dow = new Date(at(day, 12)).getDay();
+      if (dow === 0) continue; // Sunday off
+      if (pid === 'p_krueger' && day <= 5) {
+        add(pid, day, 7, dow === 6 ? 6 : 11, 'Heating replacement project (Eschweiler)');
+        continue;
+      }
+      const starts = dow === 6 ? [8, 10] : [7, 9.5, 13, 15.5];
+      const n = dow === 6 ? (rnd() < 0.5 ? 1 : 0) : 1 + Math.floor(rnd() * 2.2);
+      const chosen = starts.filter(() => rnd() < 0.6).slice(0, n);
+      for (const h of chosen) add(pid, day, h, rnd() < 0.5 ? 1.5 : 2, labels[kind][Math.floor(rnd() * labels[kind].length)]);
+    }
+  }
+  return out;
 }

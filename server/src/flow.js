@@ -2,7 +2,7 @@
 // event (timeline) and, where a person is told something, as a message.
 import { getDb, save, id, now } from './store.js';
 import { triage, llm, aiProvider } from './triage.js';
-import { matchPartners, estimate } from './matching.js';
+import { matchPartners, estimate, overlapsBusy } from './matching.js';
 import { buildPayload, contextFor, consentFields, FIELD_LABELS } from './connector.js';
 
 export class FlowError extends Error {
@@ -117,6 +117,8 @@ export function confirmSlot(caseId, { slot_id, share_phone = true }) {
 
   // Book this slot, release the others.
   db.slots.filter((s) => job.offered_slot_ids.includes(s.id)).forEach((s) => (s.status = s.id === slot.id ? 'booked' : 'free'));
+  // Windows the partner proposed but the tenant didn't take go back to being free time.
+  db.slots = db.slots.filter((s) => !(s.proposed && s.status === 'free'));
   kase.slot_id = slot.id;
   job.slot_id = slot.id;
   job.status = 'scheduled';
@@ -169,6 +171,7 @@ export function noSlotFits(caseId, { note } = {}) {
   const job = find('jobs', kase.job_id);
   const partner = find('partners', kase.partner_id);
   db.slots.filter((s) => job.offered_slot_ids.includes(s.id)).forEach((s) => (s.status = 'free'));
+  db.slots = db.slots.filter((s) => !(s.proposed && s.status === 'free'));
   job.rejected_slot_ids = [...(job.rejected_slot_ids ?? []), ...job.offered_slot_ids];
   job.offered_slot_ids = [];
   job.status = 'reschedule_requested';
@@ -411,10 +414,26 @@ export function partnerStatus(jobId, body) {
   switch (status) {
     case 'accepted':
     case 'slots_offered': {
-      const slotIds = body.slot_ids ?? [];
-      const slots = slotIds.map((sid) => find('slots', sid)).filter((s) => s.partner_id === partner.id && s.status === 'free');
-      if (!slots.length) throw new FlowError('Pick at least one free slot to offer.');
-      slots.forEach((s) => (s.status = 'offered'));
+      // The partner proposes time windows from his own calendar (or, for older
+      // clients, ids of free slots). Each window must be free and in the future.
+      let slots = [];
+      if (Array.isArray(body.windows) && body.windows.length) {
+        for (const w of body.windows.slice(0, 5)) {
+          const a = new Date(w.start);
+          const b = new Date(w.end);
+          if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime()) || b <= a) throw new FlowError('A time window is not valid.');
+          if (a.getTime() < Date.now()) throw new FlowError('A time window is in the past.');
+          if (overlapsBusy(getDb(), partner.id, a.toISOString(), b.toISOString()) || slots.some((x) => a < new Date(x.end) && b > new Date(x.start)))
+            throw new FlowError(`${fmtSlot({ start: a.toISOString(), end: b.toISOString() })} overlaps something in your calendar.`);
+          const slot = { id: id('s'), partner_id: partner.id, start: a.toISOString(), end: b.toISOString(), status: 'offered', proposed: true, job_id: job.id };
+          getDb().slots.push(slot);
+          slots.push(slot);
+        }
+      } else {
+        slots = (body.slot_ids ?? []).map((sid) => find('slots', sid)).filter((s) => s.partner_id === partner.id && s.status === 'free');
+        slots.forEach((s) => (s.status = 'offered'));
+      }
+      if (!slots.length) throw new FlowError('Pick at least one time window to offer.');
       job.offered_slot_ids = slots.map((s) => s.id);
       job.status = 'accepted';
       if (status === 'accepted' && kase.status === 'job_sent') setStatus(kase, 'job_accepted', { actor: partner.name });

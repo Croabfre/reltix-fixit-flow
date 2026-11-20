@@ -9,7 +9,7 @@
 | 0:20 | Laptop | Case appears on unit 2nd floor right, chips *heating · high urgency* | "Triage: heating, high urgency because it's heating season." |
 | 0:30 | Laptop | Point at **Suggested next step**, open **Show why** | "centrix picked Schmitz: covers 52062, handles gas, free tomorrow, 4.8 stars. Krüger has better ratings but no slot within 48 hours – so it's excluded, and we say why." |
 | 0:45 | Laptop | **Approve & send job** | "Human in the loop: nothing goes to a partner without a person approving it. One click." |
-| 0:50 | Partner phone | Job appears pre-filled; **Accept & offer 3 slots** | "The engineer gets address, floor, boiler model and photos. Not her name, not the door code, not the phone number – that is locked until Lena agrees." |
+| 0:50 | Partner phone | Job appears pre-filled; his calendar shows where he already has to be – tap **Suggest times** (or tap free time) → **Accept & offer 3 times** | "The engineer gets address, floor, boiler model and photos. Not her name, not the door code, not the phone number – that is locked until Lena agrees." |
 | 1:05 | Tenant phone | Tap one slot (toggle *may call me* stays on) | "One tap books it and records her consent to share her number – for this repair only." |
 | 1:15 | Partner phone | Phone number now visible → **I've arrived** → type the part and its price → **Done – send report & invoice** | "He enters parts himself; call-out and labour come from his own rates." |
 | 1:30 | Laptop | Timeline, invoice under *Documents*, consent record, communication log | "Invoice and report sit on the unit, the owner got an e-mail, consent is logged and expires with the case." |

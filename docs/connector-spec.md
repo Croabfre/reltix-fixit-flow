@@ -96,7 +96,7 @@ Available fields today: `property.address`, `property.heating_system`, `property
 ]
 ```
 
-Partners without a calendar API can publish slots in centrix and reference them in their `accepted` update (§6).
+The availability feed lists what the partner is **already doing** (`busy` blocks from his own calendar, `booked` centrix visits, `offered` windows waiting for a tenant) – not free slots. Free time is computed by centrix: working hours (`working_hours` in the partner profile) minus everything in the feed. `GET {partner}/free-windows?days=5&hours=2` returns ready-made suggestions.
 
 **Calendar feed (centrix → partner):** `GET /connector/partners/{partner_id}/calendar.ics` returns every booked visit as iCalendar, so a partner can subscribe from Google Calendar, Outlook or Apple Calendar and never copy appointments by hand. Each visit can also be added on its own with a Google Calendar link from the partner app.
 
@@ -127,16 +127,18 @@ When the resident later consents, centrix re-sends the job with the extra fields
 
 | status | meaning | extra fields |
 |---|---|---|
-| `accepted` | partner takes the job | `slot_ids` to offer the resident |
+| `accepted` | partner takes the job | `windows: [{start, end}]` – up to 3 times picked from his free time; centrix rejects anything that overlaps his calendar |
 | `declined` | partner can't take it | `reason` → centrix matches the next partner |
-| `slots_offered` | (re)offer times, e.g. after the resident asked for others | `slot_ids` |
+| `slots_offered` | (re)offer times, e.g. after the resident asked for others | `windows` |
 | `scheduled` | sent by centrix to the partner when the resident picks a slot | `slot` |
 | `in_progress` | work started / on site | – |
 | `completed` | work finished | `note` |
 | `cancelled` | partner cancels after accepting | `reason` → escalated to a human |
 
 ```json
-{ "status": "accepted", "slot_ids": ["s_sch_1", "s_sch_2", "s_sch_3"] }
+{ "status": "accepted", "windows": [
+  { "start": "2026-11-21T07:00:00Z", "end": "2026-11-21T09:00:00Z" },
+  { "start": "2026-11-23T06:00:00Z", "end": "2026-11-23T08:00:00Z" } ] }
 ```
 ```json
 { "status": "completed", "note": "Replaced ignition electrode. Topped up system pressure to 1.5 bar" }
