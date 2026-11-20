@@ -58,7 +58,7 @@ const URGENCY_VALUES = ['emergency', 'high', 'normal', 'low'];
 
 function systemPrompt() {
   return (
-    'You triage tenant repair reports for a German property manager. Reports may be in German or English. ' +
+    'You triage tenant repair reports for a German property manager. Reports may be in German or English; always write title, summary and reasons in English. ' +
     'Reply with a JSON object only: ' +
     `{"trade":"${TRADE_VALUES.join('|')}","urgency":"${URGENCY_VALUES.join('|')}",` +
     '"title":"2-4 word name for the request, e.g. Heating not working","summary":"one sentence in English telling the craftsman what is wrong","reasons":["short reason for the urgency"]}. ' +

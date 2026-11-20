@@ -293,6 +293,7 @@ export function buildSeed() {
   addHistory(db);
   addPartnerHistory(db);
   addGeneratedPortfolio(db, Number(process.env.SEED_BUILDINGS ?? 150));
+  addOperationsHistory(db);
   addUnitDocuments(db);
   return db;
 }
@@ -592,7 +593,7 @@ function addGeneratedPortfolio(db, buildingCount) {
     db.properties.push({
       id: pid, address: `${street}, ${postcode} ${c.city}`, street, postcode, city: c.city, building_year: year,
       heating_type: hType, heating_label: hLabel,
-      heating_system: { make: pick(makes), installed: Math.max(year, int(2005, 2023)), location: hType === 'district' ? 'Basement, utility room' : 'Basement, boiler room', last_service: `2025-${String(int(1, 11)).padStart(2, '0')}-${String(int(1, 28)).padStart(2, '0')}` },
+      heating_system: { make: pick(makes), installed: Math.max(year, int(2005, 2023)), location: hType === 'district' ? 'Basement, utility room' : 'Basement, boiler room', last_service: `2026-${String(int(1, 9)).padStart(2, '0')}-${String(int(1, 28)).padStart(2, '0')}` },
       energy_certificate: { class: pick(['B', 'C', 'C', 'D', 'D', 'E', 'F', 'G']), valid_until: `20${int(27, 34)}-0${int(1, 9)}-30` },
       owner_contact_id: owner.id,
       caretaker: `Hausmeisterdienst ${c.city}, +49 ${c.area} 0000000`,
@@ -620,5 +621,116 @@ function addGeneratedPortfolio(db, buildingCount) {
         db.contracts.push({ id: `ct_${tid}`, unit_id: uid, type: 'lease', details: { tenant_contact_id: tid, rent_cold_eur: Math.round(size * perSqm), start: moveIn } });
       }
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// A year of operations for the statistics dashboard: past cases (more heating
+// in winter), a handful open right now, partner changes (joins, declines,
+// rating moves), and contract deadlines (leases ending, service contracts,
+// energy certificates, heating service). Fictional and deterministic.
+function addOperationsHistory(db) {
+  let seed = 4242;
+  const rnd = () => {
+    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const pick = (a) => a[Math.floor(rnd() * a.length)];
+  const DAY = 864e5;
+  const nowMs = Date.now();
+  const iso = (ms) => new Date(ms).toISOString();
+  const date = (ms) => iso(ms).slice(0, 10);
+
+  // partners joined at different times (onboarding = a "partner change")
+  const joined = { p_schmitz: 400, p_meyer: 330, p_krueger: 300, p_eifel: 150, p_peters: 120, p_koeln: 21 };
+  for (const p of db.partners) {
+    p.joined_at = iso(nowMs - (joined[p.id] ?? 200) * DAY);
+    p.rating_history = [{ at: iso(nowMs - 90 * DAY), rating: Math.round((p.rating - 0.2 + rnd() * 0.3) * 10) / 10 }, { at: iso(nowMs), rating: p.rating }];
+  }
+
+  const units = db.units.filter((u) => u.id.startsWith('u_g'));
+  const tenantOf = (uid) => db.contacts.find((c) => c.unit_id === uid && c.role === 'tenant');
+  const problems = {
+    heating: ['Heating not working', 'Radiator stays cold', 'No hot water', 'Noisy heating', 'Heating pressure drops'],
+    plumbing: ['Dripping tap', 'Blocked drain', 'Water leak under sink', 'Toilet keeps running'],
+    electrical: ['Socket not working', 'Fuse keeps tripping', 'Stairwell light out'],
+    general: ['Door does not close', 'Window handle broken', 'Mould in bathroom', 'Broken blind'],
+    locksmith: ['Lock jammed', 'Letterbox lock broken'],
+  };
+  const partnerFor = { heating: ['p_schmitz', 'p_meyer', 'p_krueger'], plumbing: ['p_meyer'], electrical: ['p_peters'], general: ['p_peters', 'p_koeln'], locksmith: ['p_peters', 'p_koeln'] };
+  const OPEN = ['job_sent', 'slot_offered', 'slot_confirmed', 'slot_confirmed', 'in_progress', 'invoiced'];
+
+  const make = (createdMs, open) => {
+    const month = new Date(createdMs).getMonth();
+    const winter = month >= 9 || month <= 2;
+    const trade = rnd() < (winter ? 0.5 : 0.22) ? 'heating' : pick(['plumbing', 'plumbing', 'electrical', 'general', 'general', 'locksmith']);
+    const urgency = trade === 'heating' && winter ? (rnd() < 0.7 ? 'high' : 'normal') : rnd() < 0.08 ? 'emergency' : rnd() < 0.25 ? 'high' : rnd() < 0.8 ? 'normal' : 'low';
+    const unit = pick(units);
+    const tenant = tenantOf(unit.id);
+    if (!tenant) return;
+    const partners = partnerFor[trade];
+    const partner = pick(partners);
+    const declined = rnd() < 0.09 && partners.length > 1 ? [partners.find((x) => x !== partner)] : [];
+    const days = urgency === 'emergency' ? 0.3 + rnd() : urgency === 'high' ? 1 + rnd() * 3 : 3 + rnd() * 12;
+    const resolvedMs = createdMs + days * DAY;
+    const isOpen = open || resolvedMs > nowMs;
+    const id = `case_h${db.cases.length}`;
+    const title = pick(problems[trade]);
+    const status = isOpen ? pick(OPEN) : 'closed';
+    db.cases.push({
+      id, unit_id: unit.id, reporter_contact_id: tenant.id, title, text: title, photos: [], trade, urgency,
+      summary: title, triage: { source: 'rules', trade, urgency, reasons: [] }, status, partner_id: partner,
+      slot_id: null, job_id: null, declined_partner_ids: declined, match: null, generated: true,
+      estimate: { gross_eur: Math.round(90 + rnd() * 400) },
+      rating: isOpen ? null : { stars: rnd() < 0.75 ? 5 : rnd() < 0.7 ? 4 : 3, at: iso(resolvedMs) },
+      cost_eur: isOpen ? null : Math.round((80 + rnd() * (trade === 'heating' ? 520 : 300)) * 100) / 100,
+      created_at: iso(createdMs), updated_at: iso(isOpen ? createdMs : resolvedMs), resolved_at: isOpen ? null : iso(resolvedMs),
+    });
+    db.events.push({ id: `ev_${id}_c`, type: 'case.created', case_id: id, unit_id: unit.id, actor: tenant.name, timestamp: iso(createdMs), data: { text: title } });
+    if (declined.length) {
+      const pName = db.partners.find((x) => x.id === declined[0])?.name;
+      db.events.push({ id: `ev_${id}_d`, type: 'case.status_changed', case_id: id, unit_id: unit.id, actor: pName, timestamp: iso(createdMs + 0.2 * DAY), data: { from: 'job_sent', to: 'partner_declined', label: 'Partner declined', note: pick(['Fully booked', 'Not my area', 'Needs a specialist']), partner_id: declined[0] } });
+    }
+    if (!isOpen) db.events.push({ id: `ev_${id}_x`, type: 'case.status_changed', case_id: id, unit_id: unit.id, actor: 'centrix', timestamp: iso(resolvedMs), data: { to: 'closed', label: 'Closed' } });
+  };
+
+  // ~52 weeks of history; more reports in the cold months
+  for (let d = 364; d >= 1; d--) {
+    const ms = nowMs - d * DAY + rnd() * DAY * 0.8;
+    const m = new Date(ms).getMonth();
+    const perDay = m >= 10 || m <= 1 ? 3.1 : m === 9 || m === 2 ? 2.3 : 1.5;
+    const n = Math.floor(perDay + rnd());
+    for (let i = 0; i < n; i++) make(ms, false);
+  }
+  // open right now
+  for (let i = 0; i < 8; i++) make(nowMs - rnd() * 12 * DAY, true);
+
+  // contract deadlines
+  const leases = db.contracts.filter((c) => c.type === 'lease' && c.unit_id?.startsWith('u_g') && !c.details.end);
+  for (const ct of leases) {
+    if (rnd() < 0.035) {
+      ct.details.end = date(nowMs + (5 + rnd() * 110) * DAY);
+      ct.details.end_reason = rnd() < 0.7 ? 'Notice given by tenant' : 'Fixed-term lease ends';
+    }
+  }
+  const services = [
+    ['Caretaking', 'Hausmeisterdienst', 90],
+    ['Building insurance', 'Rheinland Versicherung (fictional)', 30],
+    ['Lift maintenance', 'Aufzugservice West (fictional)', 90],
+    ['Chimney sweep inspection', 'Bezirksschornsteinfeger', 0],
+    ['Stairwell cleaning', 'Glanz & Co Reinigung (fictional)', 30],
+  ];
+  for (const p of db.properties.filter((x) => x.id.startsWith('prop_g') || x.id === 'prop_musterstr_12')) {
+    for (const [kind, provider, notice] of [pick(services), pick(services)]) {
+      if (db.contracts.some((c) => c.property_id === p.id && c.details.service === kind)) continue;
+      db.contracts.push({
+        id: `ct_svc_${p.id}_${kind.replace(/\W+/g, '').toLowerCase()}`, unit_id: null, property_id: p.id, type: 'service',
+        details: { service: kind, provider, renews_on: date(nowMs + (3 + rnd() * 360) * DAY), notice_days: notice, annual_eur: Math.round(300 + rnd() * 4000) },
+      });
+    }
+    if (rnd() < 0.12) p.energy_certificate.valid_until = date(nowMs + (10 + rnd() * 100) * DAY);
+    if (p.heating_system?.last_service && rnd() < 0.15) p.heating_system.last_service = date(nowMs - (260 + rnd() * 100) * DAY);
   }
 }

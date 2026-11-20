@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { API, api, eur, fmtDay, fmtSlot, fmtWhen, usePoll } from '../lib/api';
 import { Button, Card, Display, Divider, ErrorNote, H2, H3, KV, Label, Muted, P, Pill, Row, Small, StatusChip, Timeline, Toggle, useWide } from '../lib/ui';
 import { colors, fonts, layout, radius, shadow, space, statusTone } from '../lib/theme';
+import Insights from '../lib/insights';
 
 const FIELD_LABELS: Record<string, string> = {
   'property.address': 'Address', 'unit.floor': 'Floor', 'unit.access_notes': 'Access notes', 'property.heating_system': 'Heating system',
@@ -13,7 +14,7 @@ const FIELD_LABELS: Record<string, string> = {
 };
 const OPEN = (c: any) => c.status !== 'closed';
 
-type Route = { name: 'search' } | { name: 'unit'; unitId: string; caseId?: string | null } | { name: 'settings' };
+type Route = { name: 'search' } | { name: 'unit'; unitId: string; caseId?: string | null } | { name: 'settings' } | { name: 'insights' };
 
 export default function Centrix() {
   const wide = useWide(980);
@@ -32,7 +33,8 @@ export default function Centrix() {
             <Text style={s.brandSub}>Workspace · demo</Text>
           </Pressable>
           <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-            <NavBtn label="Search" on={route.name !== 'settings'} onPress={() => setRoute({ name: 'search' })} />
+            <NavBtn label="Search" on={route.name === 'search' || route.name === 'unit'} onPress={() => setRoute({ name: 'search' })} />
+            <NavBtn label="Insights" on={route.name === 'insights'} onPress={() => setRoute({ name: 'insights' })} />
             <NavBtn label="Settings" on={route.name === 'settings'} onPress={() => setRoute({ name: 'settings' })} />
             <Button
               title="Reset demo"
@@ -49,6 +51,7 @@ export default function Centrix() {
       <ScrollView contentContainerStyle={{ paddingBottom: space(24) }} keyboardShouldPersistTaps="handled">
         {route.name === 'search' && <SearchHome query={query} setQuery={setQuery} filters={filters} setFilters={setFilters} openUnit={openUnit} />}
         {route.name === 'settings' && <Settings />}
+        {route.name === 'insights' && <Insights openUnit={(unitId) => openUnit(unitId, null)} />}
         {route.name === 'unit' && (
           <View style={[s.column, { maxWidth: 1240, paddingTop: space(8), gap: space(8) }]}>
             <UnitPage

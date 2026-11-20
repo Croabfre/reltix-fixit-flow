@@ -266,7 +266,7 @@ async function assistantReply(kase, tenant) {
     .map((m) => ({ role: m.from === 'centrix' ? 'assistant' : 'user', content: m.text }));
   const system =
     'You are the reltix assistant in a German property manager\'s tenant portal. You answer the tenant inside the chat of one repair request. ' +
-    'Answer in the tenant\'s language, warmly and briefly (max 3 sentences). Use ONLY the facts in CONTEXT. ' +
+    'Answer in English by default, even if the tenant writes in another language; switch only if the tenant explicitly asks for another language. Be warm and brief (max 3 sentences). Use ONLY the facts in CONTEXT and do not offer help you cannot give. ' +
     'Never invent dates, prices, names or promises. Never discuss other tenants, the owner, rent amounts or legal disputes. ' +
     'If the question needs a human (complaints, money, rent reduction, damage blame, anything not in CONTEXT), say the property manager will reply here, ' +
     'and set handover. For danger (gas smell, flooding, fire) tell them the emergency steps from CONTEXT first. ' +

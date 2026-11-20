@@ -6,6 +6,7 @@ import * as flow from './flow.js';
 import { FIELD_LABELS } from './connector.js';
 import { matchPartners } from './matching.js';
 import { aiProvider } from './triage.js';
+import { buildStats } from './stats.js';
 
 const app = express();
 app.use(cors());
@@ -109,6 +110,7 @@ app.post('/cases/:id/approve', wrap((req) => flow.approve(req.params.id, req.bod
 app.post('/cases/:id/escalate', wrap((req) => flow.escalate(req.params.id, req.body ?? {})));
 app.post('/cases/:id/confirm-slot', wrap((req) => flow.confirmSlot(req.params.id, req.body)));
 app.post('/cases/:id/no-slot-fits', wrap((req) => flow.noSlotFits(req.params.id, req.body ?? {})));
+app.get('/stats', wrap((req) => buildStats(getDb(), { city: String(req.query.city ?? 'all'), weeks: Math.min(52, Math.max(4, Number(req.query.weeks) || 26)) })));
 app.post('/cases/:id/assign', wrap((req) => flow.assign(req.params.id, req.body)));
 app.post('/units/:id/tenancy', wrap((req) => flow.changeTenant(req.params.id, req.body)));
 app.get('/units/:id/current-tenant', wrap((req) => {
