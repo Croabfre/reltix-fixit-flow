@@ -69,7 +69,11 @@ function unitView(unit, { full = false } = {}) {
   if (full) {
     view.contracts = db.contracts.filter((c) => c.unit_id === unit.id);
     view.cases = cases.map((c) => caseView(c, { full: true }));
-    view.documents = db.documents.filter((d) => d.unit_id === unit.id);
+    // The unit's file: leases, handover protocols, certificates. Invoices live with their case.
+    view.documents = db.documents.filter((d) => d.unit_id === unit.id && !d.case_id);
+    view.tenancies = db.contacts
+      .filter((c) => c.unit_id === unit.id && (c.role === 'tenant' || c.role === 'former_tenant'))
+      .sort((a, b) => (b.move_in ?? '').localeCompare(a.move_in ?? ''));
     view.consents = db.consents.filter((c) => c.contact_id === tenant?.id).map((c) => ({ ...c, partner_name: partnerName(c.partner_id) }));
     view.messages = db.messages.filter((m) => m.unit_id === unit.id).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   }
@@ -105,6 +109,78 @@ app.post('/cases/:id/approve', wrap((req) => flow.approve(req.params.id, req.bod
 app.post('/cases/:id/escalate', wrap((req) => flow.escalate(req.params.id, req.body ?? {})));
 app.post('/cases/:id/confirm-slot', wrap((req) => flow.confirmSlot(req.params.id, req.body)));
 app.post('/cases/:id/no-slot-fits', wrap((req) => flow.noSlotFits(req.params.id, req.body ?? {})));
+app.post('/cases/:id/assign', wrap((req) => flow.assign(req.params.id, req.body)));
+app.post('/units/:id/tenancy', wrap((req) => flow.changeTenant(req.params.id, req.body)));
+app.get('/units/:id/current-tenant', wrap((req) => {
+  const t = getDb().contacts.find((c) => c.unit_id === req.params.id && c.role === 'tenant');
+  if (!t) throw new flow.FlowError('This unit is vacant.', 404);
+  return { id: t.id, name: t.name };
+}));
+
+// Workspace search across buildings, units, people and cases. Runs on the server so it scales past what a page can hold.
+app.get('/search', wrap((req) => {
+  const db = getDb();
+  const q = String(req.query.q ?? '').toLowerCase().trim();
+  const tokens = q.split(/\s+/).filter(Boolean);
+  const type = String(req.query.type ?? 'all');
+  const city = String(req.query.city ?? 'all');
+  const status = String(req.query.status ?? 'all');
+  const limit = 25;
+  const hit = (...parts) => {
+    const hay = parts.filter(Boolean).join(' ').toLowerCase();
+    return tokens.every((t) => hay.includes(t));
+  };
+  const propOf = (unitId) => db.properties.find((p) => p.id === db.units.find((u) => u.id === unitId)?.property_id);
+  const inCity = (p) => city === 'all' || p?.city === city;
+  const openCaseOf = (unitId) => db.cases.find((c) => c.unit_id === unitId && c.status !== 'closed');
+
+  const units = db.units
+    .map((u) => {
+      const p = propOf(u.id);
+      const tenant = db.contacts.find((c) => c.unit_id === u.id && c.role === 'tenant');
+      const open = openCaseOf(u.id);
+      return { id: u.id, label: u.label, street: p.street, city: p.city, postcode: p.postcode, tenant: tenant?.name ?? null, open_case: open ? { id: open.id, title: open.title, status: open.status, status_label: flow.STATUS_LABELS[open.status] } : null, _p: p, _owner: db.contacts.find((c) => c.id === p.owner_contact_id)?.name };
+    })
+    .filter((u) => inCity(u._p) && (status === 'all' || (status === 'open' ? u.open_case : !u.open_case)))
+    .filter((u) => hit(u.label, u.street, u.city, u.postcode, u.tenant, u._owner, u.id));
+
+  const buildings = db.properties
+    .filter((p) => inCity(p))
+    .map((p) => ({ id: p.id, street: p.street, city: p.city, postcode: p.postcode, owner: db.contacts.find((c) => c.id === p.owner_contact_id)?.name, units: db.units.filter((u) => u.property_id === p.id).length, first_unit: db.units.find((u) => u.property_id === p.id)?.id }))
+    .filter((b) => hit(b.street, b.city, b.postcode, b.owner));
+
+  const people = db.contacts
+    .filter((c) => c.role === 'tenant' || c.role === 'former_tenant' || c.role === 'owner')
+    .map((c) => {
+      const u = db.units.find((x) => x.id === c.unit_id);
+      const p = u ? propOf(u.id) : db.properties.find((x) => x.owner_contact_id === c.id);
+      return { id: c.id, name: c.name, role: c.role, unit_id: u?.id ?? db.units.find((x) => x.property_id === p?.id)?.id, where: u ? `${u.label} · ${p.street}` : p ? `Owner of ${p.street}` : '', city: p?.city, _p: p, move_out: c.move_out };
+    })
+    .filter((c) => inCity(c._p) && tokens.length && hit(c.name, c.where));
+
+  const cases = db.cases
+    .map((k) => {
+      const u = db.units.find((x) => x.id === k.unit_id);
+      const p = propOf(k.unit_id);
+      return { id: k.id, unit_id: k.unit_id, title: k.title, trade: k.trade, status: k.status, status_label: flow.STATUS_LABELS[k.status], created_at: k.created_at, where: `${u.label} · ${p.street}`, city: p.city, _p: p, _text: k.text };
+    })
+    .filter((k) => inCity(k._p) && (status === 'all' || (status === 'open' ? k.status !== 'closed' : k.status === 'closed')))
+    .filter((k) => tokens.length && hit(k.title, k.trade, k.where, k._text))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+  const strip = (list) => list.slice(0, limit).map(({ _p, _owner, _text, ...rest }) => rest);
+  const want = (t) => type === 'all' || type === t;
+  return {
+    query: q,
+    cities: [...new Set(db.properties.map((p) => p.city))],
+    needs_approval: db.cases.filter((c) => c.status === 'awaiting_pm_approval' || c.status === 'escalated' || c.needs_pm_reply).map((c) => ({ id: c.id, unit_id: c.unit_id, title: c.title, status: c.status, needs_reply: !!c.needs_pm_reply })),
+    units: want('units') ? { total: units.length, items: strip(units) } : null,
+    buildings: want('buildings') && tokens.length ? { total: buildings.length, items: strip(buildings) } : null,
+    people: want('people') ? { total: people.length, items: strip(people) } : null,
+    cases: want('cases') ? { total: cases.length, items: strip(cases) } : null,
+  };
+}));
+
 app.post('/cases/:id/messages', wrap((req) => flow.postMessage(req.params.id, req.body)));
 app.post('/cases/:id/rate', wrap((req) => flow.rate(req.params.id, req.body)));
 app.get('/cases/:id/match', wrap((req) => {
@@ -243,7 +319,14 @@ app.post('/demo/reset', wrap(() => {
 
 function invoiceHtml(doc) {
   const eur = (n) => `€${Number(n).toFixed(2)}`;
-  if (doc.type !== 'invoice') return `<pre>${doc.note ?? ''}</pre>`;
+  if (doc.type !== 'invoice') {
+    return `<!doctype html><meta charset="utf-8"><title>${doc.title}</title>
+<style>body{font:15px/1.6 -apple-system,'IBM Plex Sans',sans-serif;max-width:640px;margin:40px auto;padding:0 16px;color:#1A1A1A;background:#FCF6EF}
+h1{font-family:Baskervville,Georgia,serif;font-weight:600;color:#330933;letter-spacing:-.02em}td{padding:8px 0;border-bottom:1px solid #EDE4DB}td:first-child{color:#797979;width:40%}table{width:100%;border-collapse:collapse}.muted{color:#797979}</style>
+<p class="muted">${doc.issuer ?? ''} · demo document${doc.status === 'ended' ? ' · ended' : ''}</p><h1>${doc.title}</h1>
+<table>${(doc.fields ?? []).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
+${doc.note ? `<p>${doc.note}</p>` : ''}`;
+  }
   return `<!doctype html><meta charset="utf-8"><title>${doc.number}</title>
 <style>body{font:15px/1.5 -apple-system,Inter,sans-serif;max-width:640px;margin:40px auto;padding:0 16px;color:#2A0E2C}
 h1{font-family:Georgia,serif;font-weight:400}table{width:100%;border-collapse:collapse}td,th{padding:8px 0;border-bottom:1px solid #EAE3DD;text-align:left}

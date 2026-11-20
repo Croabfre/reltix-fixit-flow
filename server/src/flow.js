@@ -1,7 +1,7 @@
 // The case lifecycle. One source of truth: every status change is logged as an
 // event (timeline) and, where a person is told something, as a message.
 import { getDb, save, id, now } from './store.js';
-import { triage } from './triage.js';
+import { triage, llm, aiProvider } from './triage.js';
 import { matchPartners, estimate } from './matching.js';
 import { buildPayload, contextFor, consentFields, FIELD_LABELS } from './connector.js';
 
@@ -49,8 +49,8 @@ function setStatus(kase, status, { actor = 'centrix', note } = {}) {
   event('case.status_changed', kase, { from, to: status, label: STATUS_LABELS[status], note }, actor);
 }
 
-function message(kase, { channel, from, to, text }) {
-  getDb().messages.push({ id: id('m'), unit_id: kase.unit_id, case_id: kase.id, channel, from, to, text, timestamp: now() });
+function message(kase, { channel, from, to, text, author }) {
+  getDb().messages.push({ id: id('m'), unit_id: kase.unit_id, case_id: kase.id, channel, from, to, text, timestamp: now(), ...(author ? { author } : {}) });
 }
 
 const fmtSlot = (s) =>
@@ -197,8 +197,9 @@ export function rate(caseId, { rating, comment }) {
   return kase;
 }
 
-/** Free-text chat on a case: tenant ↔ property manager. */
-export function postMessage(caseId, { text, from = 'tenant' }) {
+/** Free-text chat on a case: tenant ↔ property manager, with an AI assistant answering the tenant first. */
+export async function postMessage(caseId, { text, from = 'tenant' }) {
+  const db = getDb();
   const kase = find('cases', caseId);
   if (!text?.trim()) throw new FlowError('Message is empty.');
   const tenant = find('contacts', kase.reporter_contact_id);
@@ -208,10 +209,132 @@ export function postMessage(caseId, { text, from = 'tenant' }) {
     from: fromTenant ? tenant.name : 'centrix',
     to: fromTenant ? 'centrix' : tenant.name,
     text: text.trim(),
+    ...(fromTenant ? {} : { author: 'pm' }),
   });
   event('case.message', kase, { from: fromTenant ? 'tenant' : 'pm' }, fromTenant ? tenant.name : 'Property manager');
   save();
+
+  if (fromTenant) {
+    const answer = await assistantReply(kase, tenant);
+    message(kase, { channel: 'portal', from: 'centrix', to: tenant.name, text: answer.text, author: answer.ai ? 'assistant' : 'system' });
+    if (answer.handover) {
+      kase.needs_pm_reply = true;
+      event('case.handover', kase, { reason: answer.handover }, 'reltix assistant');
+    }
+    save();
+  } else {
+    kase.needs_pm_reply = false;
+    save();
+  }
   return kase;
+}
+
+/** Everything the assistant may use to answer – and nothing else (no other tenants, no owner data, no rent figures). */
+function assistantContext(kase, tenant) {
+  const db = getDb();
+  const unit = db.units.find((u) => u.id === kase.unit_id);
+  const property = db.properties.find((p) => p.id === unit.property_id);
+  const partner = db.partners.find((p) => p.id === kase.partner_id);
+  const slot = db.slots.find((s) => s.id === kase.slot_id);
+  const job = db.jobs.find((j) => j.id === kase.job_id);
+  const offered = job ? db.slots.filter((s) => job.offered_slot_ids.includes(s.id)).map(fmtSlot) : [];
+  const shown = !['reported', 'triaged', 'partner_matched', 'awaiting_pm_approval', 'partner_declined', 'escalated'].includes(kase.status);
+  return {
+    today: new Date().toDateString(),
+    tenant_first_name: tenant.name.split(' ')[0],
+    flat: `${property.address}, ${unit.label}`,
+    furnishings: unit.furnishings ?? 'Unfurnished: furniture belongs to the tenant, the landlord only repairs the flat and building.',
+    request: { title: kase.title, problem: kase.summary, urgency: kase.urgency, status: STATUS_LABELS[kase.status] },
+    craftsman: shown && partner ? { company: partner.name, contact: partner.contact_person } : 'not booked yet – waiting for the property manager to approve',
+    appointment: slot ? fmtSlot(slot) : offered.length ? `options offered: ${offered.join('; ')} (tenant picks one in the chat)` : 'none yet',
+    cost_for_tenant: 'Repairs to the flat and building are paid by the landlord. The tenant pays nothing, unless the damage was caused by the tenant – the property manager decides that, never the assistant.',
+    building: { heating: property.heating_label, heating_system: property.heating_system?.make, ...(property.house_info ?? {}) },
+  };
+}
+
+async function assistantReply(kase, tenant) {
+  const db = getDb();
+  const fallback = {
+    text: 'Thanks – I have passed this on to your property manager, who will answer here.',
+    ai: false,
+    handover: 'no AI available',
+  };
+  if (!aiProvider() || !db.settings.ai_triage) return fallback;
+  const history = db.messages
+    .filter((m) => m.case_id === kase.id && m.channel === 'portal')
+    .slice(-12)
+    .map((m) => ({ role: m.from === 'centrix' ? 'assistant' : 'user', content: m.text }));
+  const system =
+    'You are the reltix assistant in a German property manager\'s tenant portal. You answer the tenant inside the chat of one repair request. ' +
+    'Answer in the tenant\'s language, warmly and briefly (max 3 sentences). Use ONLY the facts in CONTEXT. ' +
+    'Never invent dates, prices, names or promises. Never discuss other tenants, the owner, rent amounts or legal disputes. ' +
+    'If the question needs a human (complaints, money, rent reduction, damage blame, anything not in CONTEXT), say the property manager will reply here, ' +
+    'and set handover. For danger (gas smell, flooding, fire) tell them the emergency steps from CONTEXT first. ' +
+    'Reply as JSON: {"reply":"...","handover":null or "short reason"}.\n\nCONTEXT:\n' +
+    JSON.stringify(assistantContext(kase, tenant), null, 1);
+  try {
+    const raw = await llm(system, history, { json: true, maxTokens: 350 });
+    const parsed = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
+    if (!parsed.reply?.trim()) throw new Error('empty reply');
+    return { text: parsed.reply.trim(), ai: true, handover: parsed.handover || null };
+  } catch (err) {
+    console.warn('[assistant] failed:', err.message);
+    return fallback;
+  }
+}
+
+/** PM picks a partner by hand (e.g. after escalation) – counts as approval. */
+export function assign(caseId, { partner_id, by = 'Property manager' }) {
+  const kase = find('cases', caseId);
+  const partner = find('partners', partner_id);
+  if (kase.job_id) throw new FlowError('This case already has a job.');
+  kase.partner_id = partner.id;
+  kase.estimate = estimate(partner, `${kase.trade}.repair`);
+  setStatus(kase, 'awaiting_pm_approval', { actor: by, note: `Picked by hand: ${partner.name}` });
+  return approve(caseId, { by });
+}
+
+/** A tenant moves out and a new one moves in. History stays on the unit; the old tenant's data access ends. */
+export function changeTenant(unitId, { name, email, phone, move_in }) {
+  const db = getDb();
+  const unit = find('units', unitId);
+  if (!name?.trim() || !move_in) throw new FlowError('Name and move-in date are needed.');
+  const moveIn = new Date(move_in);
+  if (Number.isNaN(moveIn.getTime())) throw new FlowError('Move-in date is not valid.');
+  const lastDay = new Date(moveIn.getTime() - 864e5).toISOString().slice(0, 10);
+
+  const old = db.contacts.find((c) => c.unit_id === unit.id && c.role === 'tenant');
+  const oldLease = db.contracts.find((c) => c.type === 'lease' && c.unit_id === unit.id && !c.details.end);
+  if (old) {
+    old.role = 'former_tenant';
+    old.move_out = lastDay;
+    // Consents end with the tenancy; partners lose access to the phone number.
+    db.consents.filter((c) => c.contact_id === old.id && !c.revoked_at && !c.expired_at).forEach((c) => (c.revoked_at = now()));
+    db.messages.push({ id: id('m'), unit_id: unit.id, case_id: null, channel: 'email', from: 'centrix', to: old.name, text: `Your tenancy ends on ${lastDay}. Your portal stays readable for 6 months, then your requests are archived.`, timestamp: now() });
+  }
+  // The doorbell name in the access notes follows the tenant.
+  if (old && unit.access_notes) {
+    const oldLast = old.name.split(' ').pop();
+    unit.access_notes = unit.access_notes.replaceAll(oldLast, name.trim().split(' ').pop());
+  }
+  if (oldLease) {
+    oldLease.details.end = lastDay;
+    db.documents.filter((d) => d.contract_id === oldLease.id).forEach((d) => (d.status = 'ended'));
+  }
+
+  const tenant = { id: id('c'), role: 'tenant', name: name.trim(), email: email?.trim() || null, phone: phone?.trim() || null, unit_id: unit.id, move_in: moveIn.toISOString().slice(0, 10) };
+  db.contacts.push(tenant);
+  const lease = { id: id('ct'), unit_id: unit.id, type: 'lease', details: { tenant_contact_id: tenant.id, rent_cold_eur: oldLease?.details.rent_cold_eur ?? null, start: tenant.move_in } };
+  db.contracts.push(lease);
+  db.documents.push({
+    id: id('doc'), unit_id: unit.id, case_id: null, contract_id: lease.id, type: 'lease', title: `Lease agreement – ${tenant.name}`,
+    issuer: 'reltix Hausverwaltung', issued_at: now(), status: 'active', fields: [['Tenant', tenant.name], ['Start', tenant.move_in], ['Cold rent', lease.details.rent_cold_eur ? `€${lease.details.rent_cold_eur}` : '—']],
+  });
+  db.documents[db.documents.length - 1].url = `/documents/${db.documents[db.documents.length - 1].id}`;
+  db.messages.push({ id: id('m'), unit_id: unit.id, case_id: null, channel: 'email', from: 'centrix', to: tenant.name, text: `Welcome to ${unit.label}! Your tenant portal is ready – report anything that needs fixing in one sentence.`, timestamp: now() });
+  db.events.push({ id: id('ev'), type: 'tenancy.changed', case_id: null, unit_id: unit.id, actor: 'Property manager', timestamp: now(), data: { from: old?.name ?? null, to: tenant.name, move_in: tenant.move_in } });
+  save();
+  return tenant;
 }
 
 // ---------------------------------------------------------------- centrix / PM
@@ -222,6 +345,8 @@ function runMatch(kase) {
   kase.match = { ...m, at: now() };
   if (!m.chosen) {
     setStatus(kase, 'escalated', { note: 'No eligible partner – needs a human' });
+    const tenant = getDb().contacts.find((c) => c.id === kase.reporter_contact_id);
+    message(kase, { channel: 'portal', from: 'centrix', to: tenant.name, text: 'Your property manager is looking at this personally and will get back to you here shortly.' });
     return;
   }
   kase.partner_id = m.chosen.partner_id;

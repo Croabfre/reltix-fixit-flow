@@ -63,8 +63,38 @@ function systemPrompt() {
     `{"trade":"${TRADE_VALUES.join('|')}","urgency":"${URGENCY_VALUES.join('|')}",` +
     '"title":"2-4 word name for the request, e.g. Heating not working","summary":"one sentence in English telling the craftsman what is wrong","reasons":["short reason for the urgency"]}. ' +
     `Today is ${new Date().toDateString()}. A heating outage between October and April is at least "high". ` +
-    'A gas smell is "emergency". Radiators, boilers and thermostats are always "heating".'
+    'A gas smell is "emergency". Radiators, boilers and thermostats are always "heating". Furniture, doors, windows, blinds and other small fixes are "general".'
   );
+}
+
+/** One LLM call with any system prompt and chat history. Returns the text answer. */
+export async function llm(system, messages, { json = false, maxTokens = 400 } = {}) {
+  const provider = aiProvider();
+  if (!provider) throw new Error('no API key');
+  if (provider === 'openai') {
+    const res = await fetch(`${process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1'}/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
+        ...(json ? { response_format: { type: 'json_object' } } : {}),
+        temperature: json ? 0 : 0.3,
+        max_tokens: maxTokens,
+        messages: [{ role: 'system', content: system }, ...messages],
+      }),
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    return (await res.json()).choices?.[0]?.message?.content ?? '';
+  }
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model: process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5', max_tokens: maxTokens, system, messages }),
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  return (await res.json()).content?.find((c) => c.type === 'text')?.text ?? '';
 }
 
 async function callOpenAI(text) {
@@ -132,6 +162,8 @@ function ruleTitle(t, trade) {
     return 'Heating not working';
   }
   if (trade === 'plumbing') return t.includes('leak') || t.includes('tropft') ? 'Water leak' : 'Plumbing problem';
+  if (['sofa', 'couch', 'furniture', 'möbel', 'wardrobe', 'schrank', 'shelf', 'regal'].some((w) => t.includes(w))) return 'Broken furniture';
+  if (['door', 'window', 'tür', 'fenster', 'blind', 'rollladen'].some((w) => t.includes(w))) return 'Door or window problem';
   if (trade === 'electrical') return 'Electrical problem';
   if (trade === 'locksmith') return 'Lock or key problem';
   return 'Repair request';

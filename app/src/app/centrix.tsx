@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Image, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { API, api, eur, fmtDay, fmtSlot, fmtWhen, usePoll } from '../lib/api';
-import { Button, Card, Divider, ErrorNote, H2, H3, KV, Label, Muted, P, Pill, Row, Screen, Small, StatusChip, Timeline, Toggle, useWide } from '../lib/ui';
-import { colors, fonts, radius, space, statusTone } from '../lib/theme';
+import { Button, Card, Display, Divider, ErrorNote, H2, H3, KV, Label, Muted, P, Pill, Row, Small, StatusChip, Timeline, Toggle, useWide } from '../lib/ui';
+import { colors, fonts, layout, radius, shadow, space, statusTone } from '../lib/theme';
 
 const FIELD_LABELS: Record<string, string> = {
   'property.address': 'Address', 'unit.floor': 'Floor', 'unit.access_notes': 'Access notes', 'property.heating_system': 'Heating system',
@@ -11,170 +13,296 @@ const FIELD_LABELS: Record<string, string> = {
 };
 const OPEN = (c: any) => c.status !== 'closed';
 
+type Route = { name: 'search' } | { name: 'unit'; unitId: string; caseId?: string | null } | { name: 'settings' };
+
 export default function Centrix() {
   const wide = useWide(980);
-  const units = usePoll<any[]>('/units');
-  const settings = usePoll<any>('/settings', 10000);
-  const [unitId, setUnitId] = useState<string | null>(null);
-  const [caseId, setCaseId] = useState<string | null>(null);
-  const unit = usePoll<any>(unitId ? `/units/${unitId}` : null);
-
-  // Start on the unit with the newest open case.
-  useEffect(() => {
-    if (!units.data || unitId) return;
-    const active = units.data.find((u) => u.latest_case && u.latest_case.status !== 'closed');
-    setUnitId(active?.id ?? 'unit_4b');
-  }, [units.data, unitId]);
-
-  const selectUnit = (id: string) => {
-    setUnitId(id);
-    setCaseId(null);
-  };
-
-  const right = (
-    <Button
-      title="Reset demo"
-      size="sm"
-      variant="ghost"
-      onPress={async () => {
-        await api('/demo/reset', 'POST');
-        setCaseId(null);
-        units.refresh();
-        unit.refresh();
-      }}
-    />
-  );
+  const [route, setRoute] = useState<Route>({ name: 'search' });
+  // Search state lives here, so going back from a unit returns to the same results.
+  const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState({ type: 'all', city: 'all', status: 'all' });
+  const openUnit = (unitId: string, caseId?: string | null) => setRoute({ name: 'unit', unitId, caseId: caseId ?? null });
 
   return (
-    <Screen title="Workspace" subtitle="Your portfolio, cases and partners in one record." right={right} maxWidth={1280}>
-      <ErrorNote error={units.error} />
-      <View style={{ flexDirection: wide ? 'row' : 'column', gap: space(10), alignItems: 'flex-start' }}>
-        <View style={{ width: wide ? 300 : '100%', gap: space(8) }}>
-          <Portfolio units={units.data ?? []} selected={unitId} onSelect={selectUnit} />
-          {settings.data && (
-            <View style={{ gap: space(4) }}>
-              <Label>Rules</Label>
-              <Small>Every job is approved by a property manager before it goes to a partner. Owner approval above €{settings.data.owner_approval_above_eur}.</Small>
-              <Toggle
-                value={!!settings.data.ai_triage}
-                onChange={async (v) => {
-                  await api('/settings', 'PATCH', { ai_triage: v });
-                  settings.refresh();
-                }}
-                label="AI triage"
-                sub={
-                  settings.data.ai_available
-                    ? `${settings.data.ai_provider === 'openai' ? 'OpenAI' : 'Anthropic'} reads reports; keyword rules as fallback.`
-                    : 'No API key in server/.env – keyword rules are used.'
-                }
-              />
-            </View>
-          )}
-        </View>
-
-        <View style={{ flex: 1, gap: space(8), width: wide ? undefined : '100%' }}>
-          {!unit.data ? (
-            <Muted>Loading…</Muted>
-          ) : caseId && unit.data.cases.some((c: any) => c.id === caseId) ? (
-            <CaseDetail kase={unit.data.cases.find((c: any) => c.id === caseId)} unit={unit.data} refresh={unit.refresh} back={() => setCaseId(null)} wide={wide} />
-          ) : (
-            <UnitRecord unit={unit.data} openCase={setCaseId} wide={wide} />
-          )}
+    <SafeAreaView style={s.page} edges={['top', 'left', 'right']}>
+      <View style={s.nav}>
+        <View style={s.navInner}>
+          <Pressable onPress={() => setRoute({ name: 'search' })} onLongPress={() => router.replace('/')} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
+            <Text style={s.brand}>centrix</Text>
+            <Text style={s.brandSub}>Workspace · demo</Text>
+          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+            <NavBtn label="Search" on={route.name !== 'settings'} onPress={() => setRoute({ name: 'search' })} />
+            <NavBtn label="Settings" on={route.name === 'settings'} onPress={() => setRoute({ name: 'settings' })} />
+            <Button
+              title="Reset demo"
+              size="sm"
+              variant="ghost"
+              onPress={async () => {
+                await api('/demo/reset', 'POST');
+                setRoute({ name: 'search' });
+              }}
+            />
+          </View>
         </View>
       </View>
-    </Screen>
+      <ScrollView contentContainerStyle={{ paddingBottom: space(24) }} keyboardShouldPersistTaps="handled">
+        {route.name === 'search' && <SearchHome query={query} setQuery={setQuery} filters={filters} setFilters={setFilters} openUnit={openUnit} />}
+        {route.name === 'settings' && <Settings />}
+        {route.name === 'unit' && (
+          <View style={[s.column, { maxWidth: 1240, paddingTop: space(8), gap: space(8) }]}>
+            <UnitPage
+              unitId={route.unitId}
+              caseId={route.caseId ?? null}
+              setCase={(caseId) => setRoute({ name: 'unit', unitId: route.unitId, caseId })}
+              back={() => setRoute({ name: 'search' })}
+              wide={wide}
+            />
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
-// ---------------------------------------------------------------- portfolio: city → building → unit
+function NavBtn({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={({ hovered }: any) => [s.navBtn, (on || hovered) && { backgroundColor: colors.sunken }]}>
+      <Text style={s.navBtnText}>{label}</Text>
+    </Pressable>
+  );
+}
 
-function Portfolio({ units, selected, onSelect }: { units: any[]; selected: string | null; onSelect: (id: string) => void }) {
-  const groups = useMemo(() => {
-    const byCity = new Map<string, Map<string, { property: any; owner: any; units: any[] }>>();
-    for (const u of units) {
-      const city = u.property.city;
-      if (!byCity.has(city)) byCity.set(city, new Map());
-      const props = byCity.get(city)!;
-      if (!props.has(u.property.id)) props.set(u.property.id, { property: u.property, owner: u.owner, units: [] });
-      props.get(u.property.id)!.units.push(u);
-    }
-    return [...byCity.entries()].map(([city, props]) => ({ city, buildings: [...props.values()] }));
-  }, [units]);
+// ---------------------------------------------------------------- search: the start page
+
+const TYPE_OPTIONS = [
+  ['all', 'Everything'],
+  ['units', 'Units'],
+  ['buildings', 'Buildings'],
+  ['people', 'People'],
+  ['cases', 'Cases'],
+];
+const STATUS_OPTIONS = [
+  ['all', 'Any'],
+  ['open', 'Open case'],
+  ['none', 'No open case'],
+];
+
+function SearchHome({
+  query, setQuery, filters, setFilters, openUnit,
+}: {
+  query: string;
+  setQuery: (q: string) => void;
+  filters: { type: string; city: string; status: string };
+  setFilters: (f: { type: string; city: string; status: string }) => void;
+  openUnit: (unitId: string, caseId?: string | null) => void;
+}) {
+  const wide = useWide(720);
+  const [debounced, setDebounced] = useState(query);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query), 180);
+    return () => clearTimeout(t);
+  }, [query]);
+  const qs = new URLSearchParams({ q: debounced, ...filters }).toString();
+  const { data, error } = usePoll<any>(`/search?${qs}`, 4000);
+  const [menu, setMenu] = useState<string | null>(null);
+  const input = useRef<any>(null);
+  const cityOptions = [['all', 'All cities'], ...((data?.cities ?? []) as string[]).map((c) => [c, c])];
+
+  const sections = data
+    ? [
+        data.units && { key: 'units', title: 'Units', total: data.units.total, rows: data.units.items.map((u: any) => ({ id: u.id, title: `${u.label} · ${u.street}`, sub: u.tenant ?? 'Vacant', right: u.city, chip: u.open_case, onPress: () => openUnit(u.id, null) })) },
+        data.buildings && { key: 'buildings', title: 'Buildings', total: data.buildings.total, rows: data.buildings.items.map((b: any) => ({ id: b.id, title: `${b.street}, ${b.postcode} ${b.city}`, sub: `${b.owner} · ${b.units} units`, right: b.city, onPress: () => openUnit(b.first_unit, null) })) },
+        data.people && { key: 'people', title: 'People', total: data.people.total, rows: data.people.items.map((c: any) => ({ id: c.id, title: c.name, sub: `${c.role === 'former_tenant' ? `Former tenant (until ${c.move_out})` : c.role === 'owner' ? 'Owner' : 'Tenant'} · ${c.where}`, right: c.city, onPress: () => c.unit_id && openUnit(c.unit_id, null) })) },
+        data.cases && { key: 'cases', title: 'Cases', total: data.cases.total, rows: data.cases.items.map((k: any) => ({ id: k.id, title: k.title ?? 'Repair request', sub: `${k.where} · ${fmtDay(k.created_at)}`, right: k.city, chip: { status: k.status, status_label: k.status_label }, onPress: () => openUnit(k.unit_id, k.id) })) },
+      ].filter((x: any) => x && (x.total > 0 || query))
+    : [];
 
   return (
-    <View style={{ gap: space(8) }}>
-      {groups.map((g) => (
-        <View key={g.city} style={{ gap: space(4) }}>
-          <Label>
-            {g.city} · {g.buildings.reduce((n, b) => n + b.units.length, 0)} units
-          </Label>
-          {g.buildings.map((b) => (
-            <View key={b.property.id} style={s.building}>
-              <View style={{ gap: 2, paddingHorizontal: space(4), paddingTop: space(4), paddingBottom: space(2) }}>
-                <Text style={s.buildingName}>{b.property.street}</Text>
-                <Small>
-                  {b.owner?.name} · built {b.property.building_year}
-                </Small>
-              </View>
-              {b.units.map((u: any) => {
-                const on = u.id === selected;
-                const open = u.latest_case && u.latest_case.status !== 'closed';
-                return (
-                  <Pressable key={u.id} onPress={() => onSelect(u.id)} style={({ hovered }: any) => [s.unitRow, on && s.unitRowOn, hovered && !on && { backgroundColor: colors.sunken }]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[s.unitName, on && { color: '#fff' }]}>{u.label}</Text>
-                      <Text style={[s.unitSub, on && { color: 'rgba(255,255,255,0.75)' }]}>{u.tenant?.name ?? 'Vacant'}</Text>
-                    </View>
-                    {open && <View style={[s.dot, { backgroundColor: on ? '#fff' : (statusTone[u.latest_case.status] ?? statusTone.reported).fg }]} />}
-                  </Pressable>
-                );
-              })}
+    <View style={[s.column, { maxWidth: 860, paddingTop: wide ? space(20) : space(10), gap: space(8) }]}>
+      <Display>What are you looking for?</Display>
+
+      {data?.needs_approval?.length > 0 && (
+        <View style={{ gap: space(2) }}>
+          {data.needs_approval.map((c: any) => (
+            <Pressable key={c.id} onPress={() => openUnit(c.unit_id, c.id)} style={({ hovered }: any) => [s.notice, hovered && { borderColor: colors.accent }]}>
+              <View style={[s.dot, { backgroundColor: colors.accent }]} />
+              <Text style={s.noticeText}>
+                {c.needs_reply ? 'Tenant is waiting for your reply' : c.status === 'escalated' ? 'Needs a partner picked by hand' : 'Needs your approval'}: <Text style={{ fontFamily: fonts.semibold }}>{c.title ?? 'Repair request'}</Text>
+              </Text>
+              <Text style={s.chev}>›</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
+      <View style={s.searchCard}>
+        <View style={s.searchRow}>
+          <Text style={s.searchIcon}>⌕</Text>
+          <TextInput
+            ref={input}
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Type a street, tenant, owner or problem…"
+            placeholderTextColor={colors.subtle}
+            style={s.searchInput}
+            autoFocus
+          />
+          {query ? (
+            <Pressable onPress={() => setQuery('')} hitSlop={8}>
+              <Text style={s.clear}>✕</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        <View style={s.filterRow}>
+          <Dropdown label="Show" value={filters.type} options={TYPE_OPTIONS} open={menu === 'type'} toggle={() => setMenu(menu === 'type' ? null : 'type')} onPick={(v) => { setFilters({ ...filters, type: v }); setMenu(null); }} />
+          <Dropdown label="City" value={filters.city} options={cityOptions} open={menu === 'city'} toggle={() => setMenu(menu === 'city' ? null : 'city')} onPick={(v) => { setFilters({ ...filters, city: v }); setMenu(null); }} />
+          <Dropdown label="Cases" value={filters.status} options={STATUS_OPTIONS} open={menu === 'status'} toggle={() => setMenu(menu === 'status' ? null : 'status')} onPick={(v) => { setFilters({ ...filters, status: v }); setMenu(null); }} />
+        </View>
+        <View style={{ paddingVertical: space(3) }}>
+          <ErrorNote error={error} />
+          {data && sections.length === 0 && <Muted style={{ paddingHorizontal: space(6), paddingVertical: space(4) }}>Nothing found for “{query}”.</Muted>}
+          {sections.map((sec: any) => (
+            <View key={sec.key} style={{ paddingTop: space(3) }}>
+              <Label style={{ paddingHorizontal: space(6), paddingBottom: space(2) }}>
+                {sec.title} · {sec.total}
+              </Label>
+              {sec.rows.length === 0 && <Small style={{ paddingHorizontal: space(6) }}>No matches.</Small>}
+              {sec.rows.map((r: any) => (
+                <Pressable key={r.id} onPress={r.onPress} style={({ hovered }: any) => [s.result, hovered && { backgroundColor: colors.section }]}>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={s.resultTitle} numberOfLines={1}>{r.title}</Text>
+                    <Small numberOfLines={1}>{r.sub}</Small>
+                  </View>
+                  {r.chip ? <StatusChip status={r.chip.status} label={r.chip.status_label} /> : <Small>{r.right}</Small>}
+                </Pressable>
+              ))}
+              {sec.total > sec.rows.length && <Small style={{ paddingHorizontal: space(6), paddingTop: space(2) }}>+ {sec.total - sec.rows.length} more – refine the search</Small>}
             </View>
           ))}
         </View>
-      ))}
+      </View>
     </View>
   );
 }
 
-// ---------------------------------------------------------------- unit record: facts, case history, documents, log
-
-function UnitRecord({ unit, openCase, wide }: { unit: any; openCase: (id: string) => void; wide: boolean }) {
-  const open = unit.cases.filter(OPEN);
-  const done = unit.cases.filter((c: any) => !OPEN(c));
+function Dropdown({ label, value, options, open, toggle, onPick }: { label: string; value: string; options: string[][]; open: boolean; toggle: () => void; onPick: (v: string) => void }) {
+  const current = options.find(([v]) => v === value)?.[1];
+  const active = value !== 'all';
   return (
-    <>
-      {unit.documents.length > 0 && (
-        <View style={{ gap: space(4) }}>
-          <Label>Documents</Label>
-          <Card compact style={{ gap: 0 }}>
-            {unit.documents.map((d: any, i: number) => (
-              <Row key={d.id} style={{ justifyContent: 'space-between', paddingVertical: space(3), borderTopWidth: i ? StyleSheet.hairlineWidth : 0, borderTopColor: colors.border }}>
-                <View style={{ flex: 1 }}>
-                  <P style={{ fontFamily: fonts.medium }}>{d.type === 'invoice' ? `${d.title} · ${d.number}` : d.title}</P>
-                  <Small>{d.type === 'invoice' ? `${eur(d.amount_eur)} gross · ${fmtDay(d.issued_at)}` : `${d.note} · ${fmtDay(d.issued_at)}`}</Small>
-                </View>
-                {d.url ? <Button title="Open" size="sm" variant="secondary" onPress={() => Linking.openURL(API + d.url)} /> : null}
-              </Row>
-            ))}
-          </Card>
+    <View style={{ position: 'relative', zIndex: open ? 20 : 1 }}>
+      <Pressable onPress={toggle} style={({ hovered }: any) => [s.chipBtn, (active || hovered) && { borderColor: colors.ink }, active && { backgroundColor: colors.primarySoft }]}>
+        <Text style={s.chipBtnText}>
+          {label}
+          {active ? `: ${current}` : ''} ▾
+        </Text>
+      </Pressable>
+      {open && (
+        <View style={s.menu}>
+          {options.map(([v, l]) => (
+            <Pressable key={v} onPress={() => onPick(v)} style={({ hovered }: any) => [s.menuItem, (hovered || v === value) && { backgroundColor: colors.sunken }]}>
+              <Text style={[s.menuText, v === value && { fontFamily: fonts.semibold }]}>{l}</Text>
+            </Pressable>
+          ))}
         </View>
       )}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------- settings
+
+function Settings() {
+  const settings = usePoll<any>('/settings', 10000);
+  return (
+    <View style={[s.column, { maxWidth: 760, paddingTop: space(14), gap: space(8) }]}>
+      <Display>Settings</Display>
+      {settings.data && (
+        <Card>
+          <Label>Rules</Label>
+          <P>Every job is approved by a property manager before it goes to a partner. Owner approval is needed above €{settings.data.owner_approval_above_eur}.</P>
+          <Toggle
+            value={!!settings.data.ai_triage}
+            onChange={async (v) => {
+              await api('/settings', 'PATCH', { ai_triage: v });
+              settings.refresh();
+            }}
+            label="AI triage and tenant assistant"
+            sub={
+              settings.data.ai_available
+                ? `${settings.data.ai_provider === 'openai' ? 'OpenAI' : 'Anthropic'} classifies reports and answers tenant questions; rules as fallback.`
+                : 'No API key in server/.env – keyword rules are used and questions go to the property manager.'
+            }
+          />
+        </Card>
+      )}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------- unit page
+
+function UnitPage({ unitId, caseId, setCase, back, wide }: { unitId: string; caseId: string | null; setCase: (id: string | null) => void; back: () => void; wide: boolean }) {
+  const unit = usePoll<any>(`/units/${unitId}`);
+  if (!unit.data) return <Muted>Loading…</Muted>;
+  const kase = caseId ? unit.data.cases.find((c: any) => c.id === caseId) : null;
+  if (kase) return <CaseDetail kase={kase} unit={unit.data} refresh={unit.refresh} back={() => setCase(null)} wide={wide} />;
+  return <UnitRecord unit={unit.data} openCase={setCase} refresh={unit.refresh} back={back} wide={wide} />;
+}
+
+const DOC_ORDER: Record<string, number> = { lease: 0, handover: 1, energy_certificate: 2 };
+
+function UnitRecord({ unit, openCase, refresh, back, wide }: { unit: any; openCase: (id: string) => void; refresh: () => void; back: () => void; wide: boolean }) {
+  const [moving, setMoving] = useState(false);
+  const docs = unit.documents.slice().sort((a: any, b: any) => (a.status === 'ended' ? 1 : 0) - (b.status === 'ended' ? 1 : 0) || (DOC_ORDER[a.type] ?? 9) - (DOC_ORDER[b.type] ?? 9));
+  const current = docs.filter((d: any) => d.status !== 'ended');
+  const ended = docs.filter((d: any) => d.status === 'ended');
+  const open = unit.cases.filter(OPEN);
+  const done = unit.cases.filter((c: any) => !OPEN(c));
+
+  return (
+    <>
+      <Pressable onPress={back}>
+        <Text style={s.link}>← Search</Text>
+      </Pressable>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: space(4), flexWrap: 'wrap' }}>
+        <View style={{ gap: space(2) }}>
+          <Display>{unit.label}</Display>
+          <Muted style={{ fontSize: 17 }}>
+            {unit.property.address} · owner {unit.owner?.name}
+          </Muted>
+        </View>
+        <Row gap={10}>
+          <Pill>{unit.id}</Pill>
+          <Button title={unit.tenant ? 'Change tenant' : 'Add tenant'} variant="secondary" size="sm" onPress={() => setMoving(!moving)} />
+        </Row>
+      </View>
+
+      {moving && <ChangeTenant unit={unit} done={() => { setMoving(false); refresh(); }} />}
+
+      {/* the unit's file comes first: contracts and papers */}
+      <View style={{ gap: space(3) }}>
+        <Label>Unit file</Label>
+        <Card compact style={{ gap: 0, paddingVertical: space(1) }}>
+          {current.map((d: any, i: number) => <DocRow key={d.id} d={d} first={i === 0} />)}
+          {current.length === 0 && <Small style={{ paddingVertical: space(3) }}>No documents yet.</Small>}
+        </Card>
+        {ended.length > 0 && (
+          <Collapsible title={`Earlier tenancies · ${ended.length} documents`}>
+            <Card compact style={{ gap: 0, paddingVertical: space(1), opacity: 0.75 }}>
+              {ended.map((d: any, i: number) => <DocRow key={d.id} d={d} first={i === 0} />)}
+            </Card>
+          </Collapsible>
+        )}
+      </View>
 
       <Card>
-        <Row style={{ justifyContent: 'space-between' }}>
-          <View style={{ gap: 4 }}>
-            <H2>{unit.label}</H2>
-            <Small>{unit.property.address}</Small>
-          </View>
-          <Pill>{unit.id}</Pill>
-        </Row>
         <View style={{ flexDirection: wide ? 'row' : 'column', gap: wide ? space(8) : 0 }}>
           <View style={{ flex: 1 }}>
             <KV k="Tenant" v={unit.tenant ? `${unit.tenant.name} · since ${fmtDay(unit.tenant.move_in)}` : 'Vacant'} />
-            <KV k="Contact" v={unit.tenant ? `${unit.tenant.phone} · ${unit.tenant.email}` : '—'} />
-            <KV k="Owner" v={unit.owner?.name} />
-            <KV k="Lease" v={unit.contracts.filter((c: any) => c.type === 'lease').map((c: any) => `€${c.details.rent_cold_eur} cold`).join(', ') || '—'} />
+            <KV k="Contact" v={(unit.tenant && [unit.tenant.phone, unit.tenant.email].filter(Boolean).join(' · ')) || '—'} />
+            <KV k="Lease" v={unit.contracts.filter((c: any) => c.type === 'lease' && !c.details.end).map((c: any) => (c.details.rent_cold_eur ? `€${c.details.rent_cold_eur} cold` : 'active')).join(', ') || '—'} />
+            <KV k="Before" v={unit.tenancies.filter((t: any) => t.role === 'former_tenant').map((t: any) => `${t.name} (${t.move_in?.slice(0, 4)}–${t.move_out?.slice(0, 4)})`).join(', ') || '—'} />
           </View>
           <View style={{ flex: 1 }}>
             <KV k="Size" v={`${unit.size_sqm} m² · ${unit.rooms} rooms · floor ${unit.floor}`} />
@@ -185,27 +313,110 @@ function UnitRecord({ unit, openCase, wide }: { unit: any; openCase: (id: string
         </View>
       </Card>
 
-      <View style={{ gap: space(4) }}>
-        <Label>Cases</Label>
+      {/* history: cases, each with its invoice */}
+      <View style={{ gap: space(3) }}>
+        <Label>Cases and history</Label>
         {unit.cases.length === 0 && <Muted>No cases on this unit yet. Reports from the tenant portal appear here within seconds.</Muted>}
-        {[...open, ...done].map((c: any) => (
-          <Pressable key={c.id} onPress={() => openCase(c.id)} style={({ hovered }: any) => [s.caseRow, hovered && { borderColor: colors.borderStrong }]}>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={s.caseTitle}>{c.title ?? 'Repair request'}</Text>
-              <Small>
-                {fmtDay(c.created_at)} · {c.trade}
-                {c.partner ? ` · ${c.partner.name}` : ''}
-                {c.status === 'closed' && c.documents.find((d: any) => d.type === 'invoice') ? ` · ${eur(c.documents.find((d: any) => d.type === 'invoice').amount_eur)}` : ''}
-              </Small>
-            </View>
-            {c.status === 'awaiting_pm_approval' ? <StatusChip status="slot_offered" label="Needs your approval" /> : <StatusChip status={c.status} label={c.status_label} />}
-            <Text style={s.chev}>›</Text>
-          </Pressable>
-        ))}
+        {[...open, ...done].map((c: any) => {
+          const inv = c.documents.find((d: any) => d.type === 'invoice');
+          const reporter = unit.tenancies.find((t: any) => t.id === c.reporter_contact_id);
+          return (
+            <Pressable key={c.id} onPress={() => openCase(c.id)} style={({ hovered }: any) => [s.caseRow, hovered && { borderColor: colors.borderStrong }]}>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={s.caseTitle}>{c.title ?? 'Repair request'}</Text>
+                <Small>
+                  {fmtDay(c.created_at)} · {c.trade}
+                  {c.partner ? ` · ${c.partner.name}` : ''}
+                  {inv ? ` · invoice ${inv.number} ${eur(inv.amount_eur)}` : ''}
+                  {reporter && reporter.role === 'former_tenant' ? ` · reported by ${reporter.name} (former tenant)` : ''}
+                </Small>
+              </View>
+              {c.needs_pm_reply ? (
+                <StatusChip status="slot_offered" label="Reply needed" />
+              ) : c.status === 'awaiting_pm_approval' ? (
+                <StatusChip status="slot_offered" label="Needs your approval" />
+              ) : (
+                <StatusChip status={c.status} label={c.status_label} />
+              )}
+              <Text style={s.chev}>›</Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <CommunicationLog unit={unit} />
     </>
+  );
+}
+
+function DocRow({ d, first }: { d: any; first: boolean }) {
+  return (
+    <Row style={{ justifyContent: 'space-between', paddingVertical: space(3), borderTopWidth: first ? 0 : StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
+      <View style={{ flex: 1 }}>
+        <P style={{ fontFamily: fonts.medium }}>{d.title}</P>
+        <Small>
+          {d.type === 'lease' ? 'Lease' : d.type === 'handover' ? 'Handover protocol' : d.type === 'energy_certificate' ? 'Building' : d.type} · {fmtDay(d.issued_at)}
+          {d.status === 'ended' ? ' · ended' : ''}
+        </Small>
+      </View>
+      {d.url ? <Button title="Open" size="sm" variant="secondary" onPress={() => Linking.openURL(API + d.url)} /> : null}
+    </Row>
+  );
+}
+
+function Collapsible({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ gap: space(2) }}>
+      <Pressable onPress={() => setOpen(!open)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Text style={[s.chev, { transform: [{ rotate: open ? '90deg' : '0deg' }] }]}>›</Text>
+        <Small style={{ fontFamily: fonts.medium, color: colors.ink }}>{title}</Small>
+      </Pressable>
+      {open && children}
+    </View>
+  );
+}
+
+function nextFirstOfMonth() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth() + 1, 1, 12).toISOString().slice(0, 10);
+}
+
+/** Move-out / move-in. What centrix does is spelled out, so the PM knows nothing gets lost. */
+function ChangeTenant({ unit, done }: { unit: any; done: () => void }) {
+  const [form, setForm] = useState({ name: '', email: '', phone: '', move_in: nextFirstOfMonth() });
+  const [err, setErr] = useState<string | null>(null);
+  const field = (k: keyof typeof form, placeholder: string) => (
+    <TextInput value={form[k]} onChangeText={(v) => setForm({ ...form, [k]: v })} placeholder={placeholder} placeholderTextColor={colors.subtle} style={s.input} />
+  );
+  return (
+    <Card tone="accent">
+      <Label>{unit.tenant ? `Change tenant · ${unit.tenant.name} moves out` : 'New tenant'}</Label>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(3) }}>
+        <View style={{ flexBasis: 240, flexGrow: 1 }}>{field('name', 'New tenant name')}</View>
+        <View style={{ flexBasis: 160, flexGrow: 1 }}>{field('move_in', 'Move-in YYYY-MM-DD')}</View>
+        <View style={{ flexBasis: 240, flexGrow: 1 }}>{field('email', 'Email')}</View>
+        <View style={{ flexBasis: 160, flexGrow: 1 }}>{field('phone', 'Phone')}</View>
+      </View>
+      <Small>
+        centrix ends the current lease the day before, revokes everything the old tenant shared with partners, files a new lease and sends the new
+        tenant a portal invite. Cases, invoices and documents stay on the unit; the old tenant keeps read access to their own requests for 6 months.
+      </Small>
+      <Row gap={12}>
+        <Button
+          title="Confirm tenant change"
+          onPress={async () => {
+            try {
+              await api(`/units/${unit.id}/tenancy`, 'POST', form);
+              done();
+            } catch (e: any) {
+              setErr(e.message);
+            }
+          }}
+        />
+      </Row>
+      <ErrorNote error={err} />
+    </Card>
   );
 }
 
@@ -286,7 +497,7 @@ function CaseDetail({ kase, unit, refresh, back, wide }: { kase: any; unit: any;
   return (
     <>
       <Pressable onPress={back}>
-        <Text style={s.link}>← {unit.label} · all cases</Text>
+        <Text style={s.link}>← {unit.label} · unit file</Text>
       </Pressable>
 
       <View style={{ flexDirection: wide ? 'row' : 'column', gap: space(8), alignItems: 'flex-start' }}>
@@ -336,6 +547,10 @@ function CaseDetail({ kase, unit, refresh, back, wide }: { kase: any; unit: any;
             </Card>
           )}
 
+          {(kase.status === 'escalated' || (kase.status === 'awaiting_pm_approval' && !chosen)) && !kase.job && (
+            <AssignByHand kase={kase} run={run} />
+          )}
+
           {kase.match && <Candidates match={kase.match} />}
 
           {kase.job && (
@@ -372,7 +587,10 @@ function CaseDetail({ kase, unit, refresh, back, wide }: { kase: any; unit: any;
 
           {kase.status !== 'closed' && (
             <Card>
-              <Label>Message the tenant</Label>
+              <Row style={{ justifyContent: 'space-between' }}>
+                <Label>Message the tenant</Label>
+                {kase.needs_pm_reply ? <StatusChip status="slot_offered" label="Assistant handed over – reply needed" /> : null}
+              </Row>
               <View style={{ flexDirection: 'row', gap: space(2), alignItems: 'flex-end' }}>
                 <TextInput
                   value={reply}
@@ -404,6 +622,31 @@ function CaseDetail({ kase, unit, refresh, back, wide }: { kase: any; unit: any;
         </View>
       </View>
     </>
+  );
+}
+
+function AssignByHand({ kase, run }: { kase: any; run: (fn: () => Promise<unknown>) => () => Promise<void> }) {
+  const partners = usePoll<any[]>('/partners', 30000);
+  return (
+    <Card tone="accent">
+      <Label>No partner matched automatically</Label>
+      <P>Pick one by hand – this approves the job and sends it straight away.</P>
+      {(partners.data ?? []).map((p) => {
+        const fits = p.trades.includes(kase.trade);
+        return (
+          <Row key={p.id} style={{ justifyContent: 'space-between', paddingVertical: space(2), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
+            <View style={{ flex: 1 }}>
+              <P style={{ fontFamily: fonts.medium }}>{p.name}</P>
+              <Small>
+                {p.trades.join(', ')} · ★ {p.rating} · {p.postcodes.slice(0, 3).join(', ')}
+                {p.postcodes.length > 3 ? '…' : ''}
+              </Small>
+            </View>
+            <Button title={fits ? 'Send job' : 'Send anyway'} size="sm" variant={fits ? 'primary' : 'secondary'} onPress={run(() => api(`/cases/${kase.id}/assign`, 'POST', { partner_id: p.id, by: 'PM (you)' }))} />
+          </Row>
+        );
+      })}
+    </Card>
   );
 }
 
@@ -475,6 +718,30 @@ function eventSub(e: any): string | null {
 }
 
 const s = StyleSheet.create({
+  page: { flex: 1, backgroundColor: colors.background },
+  column: { width: '100%', alignSelf: 'center', paddingHorizontal: layout.gutter },
+  nav: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderStrong, backgroundColor: colors.background, zIndex: 10 },
+  navInner: { width: '100%', maxWidth: 1240, alignSelf: 'center', paddingHorizontal: layout.gutter, height: 68, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  brand: { fontFamily: fonts.display, fontSize: 24, color: colors.ink, letterSpacing: -0.8 },
+  brandSub: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
+  navBtn: { height: 38, paddingHorizontal: 12, borderRadius: 12, justifyContent: 'center' },
+  navBtnText: { fontFamily: fonts.medium, fontSize: 14, color: colors.ink },
+  searchCard: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, ...shadow, shadowOpacity: 0.07 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingHorizontal: space(6), height: 72, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  searchIcon: { fontSize: 22, color: colors.ink, marginTop: -2 },
+  searchInput: { flex: 1, fontFamily: fonts.body, fontSize: 18, color: colors.text, outlineStyle: 'none' } as any,
+  clear: { fontSize: 16, color: colors.ink, fontFamily: fonts.medium },
+  filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), paddingHorizontal: space(5), paddingVertical: space(3), backgroundColor: colors.section, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, zIndex: 5 },
+  chipBtn: { height: 38, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.card, justifyContent: 'center' },
+  chipBtnText: { fontFamily: fonts.medium, fontSize: 14, color: colors.ink },
+  menu: { position: 'absolute', top: 44, left: 0, minWidth: 180, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, paddingVertical: 6, ...shadow, shadowOpacity: 0.12 },
+  menuItem: { paddingHorizontal: 14, paddingVertical: 9 },
+  menuText: { fontFamily: fonts.body, fontSize: 14, color: colors.ink },
+  result: { flexDirection: 'row', alignItems: 'center', gap: space(4), paddingHorizontal: space(6), paddingVertical: space(3) },
+  resultTitle: { fontFamily: fonts.medium, fontSize: 15, color: colors.ink },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingHorizontal: space(5), paddingVertical: space(4), borderRadius: radius.md, borderWidth: 1, borderColor: colors.accentLine, backgroundColor: colors.accentSoft },
+  noticeText: { flex: 1, fontFamily: fonts.body, fontSize: 15, color: colors.text },
+  input: { height: 44, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, fontFamily: fonts.body, fontSize: 15, color: colors.text, backgroundColor: colors.card, outlineStyle: 'none' } as any,
   building: { borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingBottom: space(2), overflow: 'hidden' },
   buildingName: { fontFamily: fonts.display, fontSize: 19, color: colors.ink, letterSpacing: -0.5 },
   unitRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginHorizontal: space(2), paddingHorizontal: space(2), paddingVertical: space(2), borderRadius: 10 },

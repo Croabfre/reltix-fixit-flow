@@ -43,6 +43,17 @@ export function buildSeed() {
         energy_certificate: { class: 'E', valid_until: '2029-03-31' },
         owner_contact_id: 'c_101',
         caretaker: 'Hausmeisterservice Peters, +49 241 0000000',
+        house_info: {
+          waste: 'Residual waste Tuesday, organic bin Wednesday, paper every second Thursday, yellow bags Friday. Bins are in the courtyard.',
+          caretaker_hours: 'Caretaker Hausmeisterservice Peters, Mon–Fri 8:00–16:00, +49 241 0000000.',
+          emergency: 'Out of hours emergencies (water, gas smell, no heating at night): +49 241 0000099. Gas smell: leave the flat and call 112.',
+          quiet_hours: 'Quiet hours 22:00–06:00 and all day on Sundays.',
+          laundry: 'Laundry room in the basement, washing machines until 21:00.',
+          heating_tips: 'Thermostat setting 3 is about 20 °C. A radiator key for bleeding radiators is available from the caretaker. System pressure should be 1.2–2.0 bar.',
+          bikes_parking: 'Bike room in the courtyard (key from the caretaker). No private parking spaces.',
+          rent: 'Rent is due by the 3rd working day of the month; bank details are in your lease. Questions about the service charge statement go to your property manager.',
+          internet: 'The building has fibre (Deutsche Glasfaser). Choose any provider; the connection box is in the basement.',
+        },
       },
       {
         id: 'prop_lothringer_40',
@@ -57,6 +68,13 @@ export function buildSeed() {
         energy_certificate: { class: 'D', valid_until: '2031-06-30' },
         owner_contact_id: 'c_102',
         caretaker: 'Hausmeisterservice Peters, +49 241 0000000',
+        house_info: {
+          waste: 'Residual waste Monday, paper Thursday, yellow bags every second Wednesday.',
+          caretaker_hours: 'Caretaker Hausmeisterservice Peters, Mon–Fri 8:00–16:00, +49 241 0000000.',
+          emergency: 'Out of hours emergencies: +49 241 0000099. District heating faults are reported to STAWAG by us.',
+          quiet_hours: 'Quiet hours 22:00–06:00 and Sundays.',
+          heating_tips: 'District heating: no boiler in the flat. If all radiators are cold, tell us – the transfer station is in the basement.',
+        },
       },
       {
         id: 'prop_venloer_210',
@@ -71,6 +89,12 @@ export function buildSeed() {
         energy_certificate: { class: 'C', valid_until: '2030-01-31' },
         owner_contact_id: 'c_103',
         caretaker: 'Köln Haus Service, +49 221 0000000',
+        house_info: {
+          waste: 'AWB Köln: residual waste Wednesday, paper every second Monday, yellow bin Friday.',
+          caretaker_hours: 'Köln Haus Service, Mon–Fri 8:00–17:00, +49 221 0000000.',
+          emergency: 'Out of hours emergencies: +49 221 0000099.',
+          quiet_hours: 'Quiet hours 22:00–07:00 and Sundays.',
+        },
       },
     ],
 
@@ -97,6 +121,7 @@ export function buildSeed() {
           { type: 'heat', number: 'WMZ-0042-4B' },
         ],
         access_notes: 'Ring at "Hoffmann". No lift. Basement door code 4711.',
+        furnishings: 'Partly furnished: built-in kitchen, living-room sofa and bedroom wardrobe belong to the landlord.',
       },
       {
         id: 'unit_5c',
@@ -122,11 +147,13 @@ export function buildSeed() {
       { id: 'c_205', role: 'tenant', name: 'Sofia Rossi', email: 'sofia@example.com', phone: '+49 152 00000005', unit_id: 'unit_l2', move_in: '2023-07-15' },
       { id: 'c_206', role: 'tenant', name: 'Mehmet Yılmaz', email: 'mehmet@example.com', phone: '+49 176 00000006', unit_id: 'unit_v1', move_in: '2020-10-01' },
       { id: 'c_201', role: 'tenant', name: 'Jonas Weber', email: 'jonas@example.com', phone: '+49 152 00000002', unit_id: 'unit_1a', move_in: '2021-04-01' },
+      { id: 'c_190', role: 'former_tenant', name: 'Paul Schneider', email: 'paul.s@example.com', phone: '+49 151 00000009', unit_id: 'unit_4b', move_in: '2019-05-01', move_out: '2024-11-30' },
       { id: 'c_202', role: 'tenant', name: 'Lena Hoffmann', email: 'lena@example.com', phone: '+49 151 00000000', unit_id: 'unit_4b', move_in: '2024-12-01' },
       { id: 'c_203', role: 'tenant', name: 'Aylin Demir', email: 'aylin@example.com', phone: '+49 157 00000003', unit_id: 'unit_5c', move_in: '2019-08-15' },
     ],
 
     contracts: [
+      { id: 'ct_0', unit_id: 'unit_4b', type: 'lease', details: { tenant_contact_id: 'c_190', rent_cold_eur: 720, start: '2019-05-01', end: '2024-11-30' } },
       { id: 'ct_1', unit_id: 'unit_1a', type: 'lease', details: { tenant_contact_id: 'c_201', rent_cold_eur: 590, start: '2021-04-01' } },
       { id: 'ct_2', unit_id: 'unit_4b', type: 'lease', details: { tenant_contact_id: 'c_202', rent_cold_eur: 780, start: '2024-12-01' } },
       { id: 'ct_3', unit_id: 'unit_5c', type: 'lease', details: { tenant_contact_id: 'c_203', rent_cold_eur: 910, start: '2019-08-15' } },
@@ -191,6 +218,33 @@ export function buildSeed() {
         contact_person: 'Jan Lenzen',
         connector: manifest('p_eifel', 'Eifel Wärmepumpen-Service', { callout: 59, hourly: 79 }),
       },
+      // Handymen: everything that isn't a specialist trade (furniture, doors, locks, small fixes)
+      {
+        id: 'p_peters',
+        name: 'Hausmeisterservice Peters',
+        category: 'craftsman',
+        trades: ['general', 'locksmith'],
+        heating_types: [],
+        postcodes: ['52062', '52064', '52066', '52068', '52070', '52072'],
+        rating: 4.6,
+        reviews: 184,
+        hourly_rate: 45,
+        contact_person: 'Uwe Peters',
+        connector: manifest('p_peters', 'Hausmeisterservice Peters', { callout: 29, hourly: 45 }, 'handyman'),
+      },
+      {
+        id: 'p_koeln',
+        name: 'Köln Haus Service',
+        category: 'craftsman',
+        trades: ['general', 'locksmith'],
+        heating_types: [],
+        postcodes: ['50823', '50825', '50827'],
+        rating: 4.4,
+        reviews: 76,
+        hourly_rate: 48,
+        contact_person: 'Selin Aydın',
+        connector: manifest('p_koeln', 'Köln Haus Service', { callout: 32, hourly: 48 }, 'handyman'),
+      },
     ],
 
     slots: [
@@ -209,6 +263,13 @@ export function buildSeed() {
       slot('s_kru_2', 'p_krueger', 7, 13),
       // Eifel: would be available, but does not cover the postcode / gas heating
       slot('s_eif_1', 'p_eifel', 1, 9),
+      // Handymen
+      slot('s_pet_1', 'p_peters', 1, 9),
+      slot('s_pet_2', 'p_peters', 1, 14),
+      slot('s_pet_3', 'p_peters', 2, 11),
+      slot('s_pet_4', 'p_peters', 3, 15),
+      slot('s_koe_1', 'p_koeln', 1, 10),
+      slot('s_koe_2', 'p_koeln', 2, 13),
     ],
 
     cases: [],
@@ -231,6 +292,8 @@ export function buildSeed() {
   };
   addHistory(db);
   addPartnerHistory(db);
+  addGeneratedPortfolio(db, Number(process.env.SEED_BUILDINGS ?? 150));
+  addUnitDocuments(db);
   return db;
 }
 
@@ -284,7 +347,33 @@ function addHistory(db) {
   ].forEach(([timestamp, type, data, actor], i) => db.events.push({ id: `ev_hist_${i}`, type, case_id: id, unit_id: 'unit_4b', actor, timestamp, data }));
 }
 
-function manifest(partnerId, name, price) {
+function manifest(partnerId, name, price, kind = 'heating') {
+  if (kind === 'handyman') {
+    return {
+      spec_version: '1.0',
+      partner_id: partnerId,
+      name,
+      category: 'craftsman',
+      services: [
+        {
+          code: 'general.repair',
+          name: 'Small repairs and handyman work',
+          price_model: { type: 'time_and_material', callout_fee_eur: price.callout, hourly_rate_eur: price.hourly, typical_hours: 1, vat_rate: 0.19 },
+        },
+      ],
+      eligibility: { lead_time_hours: { high: 48, normal: 120, low: 336 } },
+      required_data: [
+        { field: 'property.address', purpose: 'Get to the building' },
+        { field: 'unit.floor', purpose: 'Find the flat' },
+        { field: 'case.summary', purpose: 'Understand the job' },
+        { field: 'case.urgency', purpose: 'Plan the visit' },
+        { field: 'case.photos', purpose: 'Bring the right tools' },
+        { field: 'tenant.phone', purpose: 'Call to be let in', consent: true },
+      ],
+      endpoints: { availability: `/connector/partners/${partnerId}/availability`, jobs: `/connector/partners/${partnerId}/jobs` },
+      webhooks: { status: '/centrix/jobs/{job_id}/status', result: '/centrix/jobs/{job_id}/result' },
+    };
+  }
   return {
     spec_version: '1.0',
     partner_id: partnerId,
@@ -393,4 +482,143 @@ function addPartnerHistory(db) {
     payload: { job_ref: 'case_hist_pressure', service: 'heating.repair', case: { trade: 'heating', urgency: 'normal' }, fields: fields(u3, 'System pressure drops every few days – possible leak or faulty expansion vessel.'), withheld: [{ field: 'tenant.phone', label: 'Tenant phone', reason: 'awaiting tenant consent' }] },
     payload_history: [], offered_slot_ids: [], slot_id: null, estimate: { gross_eur: 179.69 }, created_at: at(-22, 9),
   });
+}
+
+// The documents a property manager keeps in a unit's file: leases, handover
+// protocols, and building-wide papers (energy certificate, house rules).
+// Invoices are not here – they belong to the case that caused them.
+function addUnitDocuments(db) {
+  for (const ct of db.contracts.filter((c) => c.type === 'lease')) {
+    const tenant = db.contacts.find((c) => c.id === ct.details.tenant_contact_id);
+    const unit = db.units.find((u) => u.id === ct.unit_id);
+    const ended = Boolean(ct.details.end);
+    db.documents.push({
+      id: `doc_lease_${ct.id}`, unit_id: ct.unit_id, case_id: null, contract_id: ct.id, type: 'lease',
+      title: `Lease agreement – ${tenant.name}`, issuer: 'reltix Hausverwaltung', issued_at: new Date(ct.details.start).toISOString(),
+      status: ended ? 'ended' : 'active',
+      fields: [
+        ['Tenant', tenant.name], ['Flat', `${unit.label}, ${unit.size_sqm} m², ${unit.rooms} rooms`], ['Start', ct.details.start],
+        ['End', ct.details.end ?? 'open-ended'], ['Cold rent', `€${ct.details.rent_cold_eur}`], ['Deposit', `€${ct.details.rent_cold_eur * 3}`],
+      ],
+      url: `/documents/doc_lease_${ct.id}`,
+    });
+    db.documents.push({
+      id: `doc_handover_${ct.id}`, unit_id: ct.unit_id, case_id: null, contract_id: ct.id, type: 'handover',
+      title: `Handover protocol (move-in) – ${tenant.name}`, issuer: 'reltix Hausverwaltung', issued_at: new Date(ct.details.start).toISOString(),
+      status: ended ? 'ended' : 'active',
+      fields: [['Keys handed over', '2 flat, 2 front door, 1 basement, 1 letterbox'], ['Meter readings', unit.meters.map((m) => `${m.type} ${m.number}`).join(', ')], ['Condition', 'Freshly painted, no defects noted']],
+      url: `/documents/doc_handover_${ct.id}`,
+    });
+  }
+  for (const p of db.properties) {
+    for (const unit of db.units.filter((u) => u.property_id === p.id)) {
+      db.documents.push({
+        id: `doc_epc_${unit.id}`, unit_id: unit.id, property_id: p.id, case_id: null, type: 'energy_certificate',
+        title: `Energy certificate – class ${p.energy_certificate.class}`, issuer: 'Building', issued_at: new Date('2019-04-01').toISOString(),
+        status: 'active', fields: [['Class', p.energy_certificate.class], ['Valid until', p.energy_certificate.valid_until], ['Heating', p.heating_label]],
+        url: `/documents/doc_epc_${unit.id}`,
+      });
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// A large, made-up portfolio to test scale: ~150 buildings, ~900 units in six
+// cities, owned by companies, owners' associations (WEG) and private landlords.
+// Deterministic (fixed random seed), so every reset produces the same data.
+// All names, companies and numbers are fictional.
+function addGeneratedPortfolio(db, buildingCount) {
+  if (!buildingCount) return;
+  let seed = 20261120;
+  const rnd = () => {
+    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const pick = (a) => a[Math.floor(rnd() * a.length)];
+  const int = (a, b) => a + Math.floor(rnd() * (b - a + 1));
+
+  const cities = [
+    { city: 'Aachen', share: 0.2, postcodes: ['52062', '52064', '52066', '52068', '52070', '52072'], rent: [9.5, 13.5], area: '241', streets: ['Jakobstraße', 'Pontstraße', 'Theaterstraße', 'Oppenhoffallee', 'Viktoriaallee', 'Boxgraben', 'Lütticher Straße', 'Roermonder Straße', 'Krefelder Straße', 'Adalbertsteinweg'] },
+    { city: 'Köln', share: 0.22, postcodes: ['50667', '50672', '50674', '50676', '50823', '50825', '50827', '51063'], rent: [12, 17], area: '221', streets: ['Aachener Straße', 'Subbelrather Straße', 'Neusser Straße', 'Severinstraße', 'Zülpicher Straße', 'Dürener Straße', 'Berrenrather Straße', 'Deutzer Freiheit', 'Ehrenfeldgürtel', 'Bonner Straße'] },
+    { city: 'Düsseldorf', share: 0.18, postcodes: ['40210', '40211', '40215', '40219', '40223', '40227', '40476'], rent: [12, 18], area: '211', streets: ['Kölner Straße', 'Bilker Allee', 'Lorettostraße', 'Nordstraße', 'Kaiserswerther Straße', 'Brunnenstraße', 'Ackerstraße', 'Bachstraße'] },
+    { city: 'Essen', share: 0.14, postcodes: ['45127', '45128', '45130', '45131', '45136', '45138', '45147'], rent: [7.5, 11], area: '201', streets: ['Rüttenscheider Straße', 'Alfredstraße', 'Steeler Straße', 'Frohnhauser Straße', 'Huyssenallee', 'Kahrstraße', 'Gemarkenstraße'] },
+    { city: 'Frankfurt am Main', share: 0.16, postcodes: ['60311', '60316', '60318', '60322', '60385', '60389', '60594'], rent: [15, 21], area: '69', streets: ['Berger Straße', 'Schweizer Straße', 'Leipziger Straße', 'Eckenheimer Landstraße', 'Oeder Weg', 'Mainzer Landstraße', 'Gutleutstraße'] },
+    { city: 'Berlin', share: 0.1, postcodes: ['10115', '10245', '10405', '10437', '10961', '12043', '12047'], rent: [13, 19], area: '30', streets: ['Kastanienallee', 'Boxhagener Straße', 'Sonnenallee', 'Oranienstraße', 'Schönhauser Allee', 'Weserstraße', 'Bergmannstraße'] },
+  ];
+  const companies = [
+    'Rheinblick Immobilien GmbH', 'Lindenhof Wohnbau AG', 'Maas & Partner Grundbesitz KG', 'Domstadt Living GmbH', 'Westpark Residential GmbH',
+    'Ruhrstein Wohnen GmbH', 'Mainufer Asset Management GmbH', 'Spreequartier Immobilien GmbH', 'Hanse Nordwest Bestand GmbH', 'Familie Oster Vermögensverwaltung GbR',
+    'Altbau Erben GbR', 'Kranich Real Estate Fund I', 'Tilia Wohnen eG', 'Brückner & Söhne Grundstücks KG',
+  ];
+  const first = ['Anna', 'Lukas', 'Mia', 'Jonas', 'Emma', 'Leon', 'Sophie', 'Finn', 'Lea', 'Paul', 'Hannah', 'Ben', 'Lina', 'Elias', 'Marie', 'Noah', 'Clara', 'David', 'Ella', 'Tim', 'Sara', 'Murat', 'Elif', 'Can', 'Olga', 'Piotr', 'Fatima', 'Yusuf', 'Chiara', 'Marco', 'Nina', 'Felix', 'Laura', 'Jan', 'Amira', 'Theo', 'Greta', 'Karim', 'Ida', 'Moritz'];
+  const last = ['Müller', 'Schmidt', 'Schneider', 'Fischer', 'Weber', 'Meyer', 'Wagner', 'Becker', 'Schulz', 'Hoffmann', 'Koch', 'Richter', 'Klein', 'Wolf', 'Neumann', 'Schwarz', 'Zimmermann', 'Braun', 'Krüger', 'Hartmann', 'Lange', 'Werner', 'Krause', 'Lehmann', 'Köhler', 'Öztürk', 'Kaya', 'Nowak', 'Kowalski', 'Rossi', 'Ivanova', 'Hadžić', 'Nguyen', 'Bauer', 'Vogt', 'Arslan'];
+  const heating = [
+    ['gas', 'Gas central heating', ['Vaillant ecoTEC plus', 'Buderus Logamax plus GB172', 'Viessmann Vitodens 200-W', 'Wolf CGB-2']],
+    ['district', 'District heating', ['District heating transfer station']],
+    ['heat_pump', 'Heat pump', ['Viessmann Vitocal 250-A', 'Stiebel Eltron WPL 25']],
+    ['oil', 'Oil central heating', ['Buderus Logano plus KB195i']],
+  ];
+  const floorName = (f) => (f === 0 ? 'Ground floor' : f === 1 ? '1st floor' : f === 2 ? '2nd floor' : f === 3 ? '3rd floor' : `${f}th floor`);
+  const used = new Set(db.properties.map((p) => p.street));
+  let contactN = 1000;
+  const person = () => `${pick(first)} ${pick(last)}`;
+  const companyOwners = companies.map((name, i) => ({ id: `c_co_${i}`, role: 'owner', name, email: `verwaltung@${name.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '')}.example`, phone: `+49 ${int(200, 699)} 000${int(1000, 9999)}`, unit_id: null, owner_type: 'company' }));
+  db.contacts.push(...companyOwners);
+
+  for (let b = 0; b < buildingCount; b++) {
+    // pick a city by share
+    let r = rnd(), c = cities[0];
+    for (const x of cities) { if ((r -= x.share) <= 0) { c = x; break; } c = x; }
+    let street;
+    do street = `${pick(c.streets)} ${int(1, 180)}`; while (used.has(street));
+    used.add(street);
+    const postcode = pick(c.postcodes);
+    const [hType, hLabel, makes] = pick(heating);
+
+    // owner: company 45%, owners' association 15%, private landlord 40%
+    const ro = rnd();
+    let owner;
+    if (ro < 0.45) owner = pick(companyOwners);
+    else {
+      owner = ro < 0.6
+        ? { id: `c_${contactN++}`, role: 'owner', name: `WEG ${street}`, email: `weg-${contactN}@example.com`, phone: null, unit_id: null, owner_type: 'weg' }
+        : { id: `c_${contactN++}`, role: 'owner', name: person(), email: `owner${contactN}@example.com`, phone: `+49 1${int(50, 79)} 0000${int(1000, 9999)}`, unit_id: null, owner_type: 'private' };
+      db.contacts.push(owner);
+    }
+    const year = pick([1898, 1905, 1912, 1928, 1954, 1958, 1962, 1968, 1972, 1979, 1985, 1994, 1999, 2004, 2012, 2019]);
+    const pid = `prop_g${b}`;
+    db.properties.push({
+      id: pid, address: `${street}, ${postcode} ${c.city}`, street, postcode, city: c.city, building_year: year,
+      heating_type: hType, heating_label: hLabel,
+      heating_system: { make: pick(makes), installed: Math.max(year, int(2005, 2023)), location: hType === 'district' ? 'Basement, utility room' : 'Basement, boiler room', last_service: `2025-${String(int(1, 11)).padStart(2, '0')}-${String(int(1, 28)).padStart(2, '0')}` },
+      energy_certificate: { class: pick(['B', 'C', 'C', 'D', 'D', 'E', 'F', 'G']), valid_until: `20${int(27, 34)}-0${int(1, 9)}-30` },
+      owner_contact_id: owner.id,
+      caretaker: `Hausmeisterdienst ${c.city}, +49 ${c.area} 0000000`,
+    });
+
+    const floors = int(1, 5);
+    const perFloor = int(1, 3);
+    const sides = perFloor === 1 ? [''] : perFloor === 2 ? [' left', ' right'] : [' left', ' middle', ' right'];
+    for (let f = 0; f <= floors; f++) {
+      for (const side of sides) {
+        const uid = `u_g${b}_${f}${side.trim().charAt(0) || 'x'}`;
+        const size = int(32, 118);
+        const rooms = size < 45 ? 1 : size < 65 ? 2 : size < 90 ? 3 : 4;
+        db.units.push({
+          id: uid, property_id: pid, label: `${floorName(f)}${side}`, floor: f, size_sqm: size, rooms,
+          meters: [{ type: 'electricity', number: `1ESY${int(10000000, 99999999)}` }],
+          access_notes: 'Ring at the name plate.',
+        });
+        if (rnd() < 0.08) continue; // vacant
+        const moveIn = `${int(2008, 2025)}-${String(int(1, 12)).padStart(2, '0')}-01`;
+        const name = person();
+        const tid = `c_${contactN++}`;
+        db.contacts.push({ id: tid, role: 'tenant', name, email: `${name.toLowerCase().normalize('NFD').replace(/[^a-z ]/g, '').replace(' ', '.')}${contactN}@example.com`, phone: `+49 1${int(50, 79)} 0000${int(1000, 9999)}`, unit_id: uid, move_in: moveIn });
+        const perSqm = c.rent[0] + rnd() * (c.rent[1] - c.rent[0]);
+        db.contracts.push({ id: `ct_${tid}`, unit_id: uid, type: 'lease', details: { tenant_contact_id: tid, rent_cold_eur: Math.round(size * perSqm), start: moveIn } });
+      }
+    }
+  }
 }

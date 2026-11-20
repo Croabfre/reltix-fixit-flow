@@ -58,8 +58,12 @@ export function usePoll<T = any>(path: string | null, intervalMs = 2500) {
 
 // ---------- formatting helpers
 
-export const fmtDay = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+// Weekday for recent dates, the year for anything outside this year.
+export const fmtDay = (iso: string) => {
+  const d = new Date(iso);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString('en-GB', sameYear ? { weekday: 'short', day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
+};
 export const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 export const fmtSlot = (s: { start: string; end: string }) => `${fmtDay(s.start)} · ${fmtTime(s.start)}–${fmtTime(s.end)}`;
 export const fmtWhen = (iso: string) => {

@@ -19,6 +19,7 @@ Phones in Expo Go reach the API on the laptop's LAN address automatically (same 
 
 Optional AI triage: copy `server/.env.example` to `server/.env` and set `OPENAI_API_KEY` (model via `OPENAI_MODEL`, default `gpt-4.1-mini`) or `ANTHROPIC_API_KEY`. Restart the server; it prints which provider is active, and **AI triage** is switched on in centrix after a reset. The model's answer is validated (allowed trades/urgencies only); if the call fails or returns garbage, keyword rules are used, so the demo never depends on the LLM.
 
+- Data lives in `server/centrix.db` (SQLite, built into Node 22.13+). It is created from the seed on first start; `SEED_BUILDINGS=0 npm start` skips the ~150 generated buildings.
 - Reset demo data: **Reset demo** in centrix, or `POST /demo/reset`.
 - Full flow via API: `cd server && npm run smoke` (server must be running).
 

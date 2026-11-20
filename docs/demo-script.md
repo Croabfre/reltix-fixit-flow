@@ -16,6 +16,9 @@
 | 1:40 | Tenant phone | Tap ★★★★★ | "Lena rates it, case closed. Same connector works for internet at move-in or a new energy contract – only the manifest changes." |
 
 **Backup paths to show if asked**
+- Tenant asks in the chat "When is the paper bin collected?" → the reltix assistant answers from the house info; "Can I pay less rent?" → it hands over to the PM (centrix shows *Reply needed*).
+- centrix search: type a street, tenant or owner across ~1,150 units; filter by city or open cases.
+- Unit → **Change tenant**: new lease, old consents revoked, history stays.
 - Partner app → **History**: a completed job (work done, invoice lines, rating) and a declined one (reason, date). **Schedule**: the next two weeks with *Add to Google Calendar* and a calendar feed.
 - Partner taps **Fully booked** → centrix suggests *Haustechnik Meyer* automatically.
 - Tenant taps **None of these work for me** → partner sees "Tenant needs other times" and offers new slots.

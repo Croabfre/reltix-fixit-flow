@@ -7,14 +7,16 @@ import { api, fmtDay, fmtSlot, fmtWhen, usePoll } from '../lib/api';
 import { Button, Card, Display, ErrorNote, H2, KV, Label, Muted, P, Small, StatusChip, Toggle, useWide } from '../lib/ui';
 import { colors, fonts, layout, radius, space } from '../lib/theme';
 
-const TENANT_ID = 'c_202'; // Lena Hoffmann, unit_4b
+const UNIT_ID = 'unit_4b'; // the demo flat; whoever currently rents it is "logged in"
 const QUICK = ['No heating since yesterday', 'No hot water', 'Radiator is leaking', 'Heating makes a loud noise'];
 const OPEN = (c: any) => c.status !== 'closed';
 
 type Route = { name: 'home' } | { name: 'requests' } | { name: 'profile' } | { name: 'chat'; id: string };
 
 export default function TenantPortal() {
-  const { data, refresh, error } = usePoll<any>(`/tenants/${TENANT_ID}`);
+  // After a tenant change in centrix, the portal belongs to the new tenant.
+  const current = usePoll<any>(`/units/${UNIT_ID}/current-tenant`, 10000);
+  const { data, refresh, error } = usePoll<any>(current.data ? `/tenants/${current.data.id}` : null);
   const [route, setRoute] = useState<Route>({ name: 'home' });
   const openCount = data?.cases.filter(OPEN).length ?? 0;
 
@@ -128,7 +130,8 @@ function Composer({ onSent }: { onSent: (id: string) => void }) {
     if (!text.trim() || busy) return;
     setBusy(true);
     try {
-      const kase = await api('/cases', 'POST', { unit_id: 'unit_4b', contact_id: TENANT_ID, text, photos: photo ? [photo] : [] });
+      const tenant = await api(`/units/${UNIT_ID}/current-tenant`);
+      const kase = await api('/cases', 'POST', { unit_id: UNIT_ID, contact_id: tenant.id, text, photos: photo ? [photo] : [] });
       setText('');
       setPhoto(null);
       onSent(kase.id);
@@ -276,11 +279,12 @@ function Chat({ kase, refresh, go }: { kase: any; refresh: () => void; go: (r: R
   const [draft, setDraft] = useState('');
   const [sharePhone, setSharePhone] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [typing, setTyping] = useState<string | null>(null); // the message being sent
   const count = kase?.messages.length ?? 0;
   useEffect(() => {
     const t = setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 60);
     return () => clearTimeout(t);
-  }, [count, kase?.status]);
+  }, [count, kase?.status, typing]);
 
   if (!kase) {
     return (
@@ -303,7 +307,13 @@ function Chat({ kase, refresh, go }: { kase: any; refresh: () => void; go: (r: R
     if (!draft.trim()) return;
     const text = draft;
     setDraft('');
-    await api(`/cases/${kase.id}/messages`, 'POST', { text, from: 'tenant' });
+    setTyping(text);
+    try {
+      // The assistant answers within the same request (a few seconds with AI).
+      await api(`/cases/${kase.id}/messages`, 'POST', { text, from: 'tenant' });
+    } finally {
+      setTyping(null);
+    }
   });
 
   // Oldest first, newest at the bottom – your message, then our answer below it.
@@ -344,11 +354,25 @@ function Chat({ kase, refresh, go }: { kase: any; refresh: () => void; go: (r: R
                   <Text style={[st.bubbleText, mine && { color: '#fff' }]}>{m.text}</Text>
                 </View>
                 <Small style={{ fontSize: 11, color: colors.subtle }}>
-                  {mine ? 'You' : 'reltix'} · {fmtWhen(m.timestamp)}
+                  {mine ? 'You' : m.author === 'assistant' ? 'reltix assistant · AI' : m.author === 'pm' ? 'Your property manager' : 'reltix'} · {fmtWhen(m.timestamp)}
                 </Small>
               </View>
             );
           })}
+          {typing && (
+            <View style={{ alignItems: 'flex-end' }}>
+              <View style={[st.bubble, st.bubbleMine, { opacity: 0.7 }]}>
+                <Text style={[st.bubbleText, { color: '#fff' }]}>{typing}</Text>
+              </View>
+            </View>
+          )}
+          {typing && (
+            <View style={{ alignItems: 'flex-start' }}>
+              <View style={[st.bubble, st.bubbleTheirs]}>
+                <Text style={[st.bubbleText, { color: colors.muted }]}>reltix assistant is typing…</Text>
+              </View>
+            </View>
+          )}
 
           {kase.status === 'slot_offered' && (
             <View style={st.actionCard}>

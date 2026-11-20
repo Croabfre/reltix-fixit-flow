@@ -5,3 +5,5 @@ dist/
 .env
 .DS_Store
 Reltix-Track-Description.pdf
+server/centrix.db
+server/centrix.db-*
