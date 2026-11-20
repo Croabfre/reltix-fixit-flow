@@ -53,7 +53,7 @@ export function aiProvider() {
   return null;
 }
 
-const TRADE_VALUES = ['heating', 'plumbing', 'electrical', 'locksmith', 'general'];
+const TRADE_VALUES = ['heating', 'plumbing', 'electrical', 'locksmith', 'general', 'service'];
 const URGENCY_VALUES = ['emergency', 'high', 'normal', 'low'];
 
 function systemPrompt() {
@@ -63,7 +63,8 @@ function systemPrompt() {
     `{"trade":"${TRADE_VALUES.join('|')}","urgency":"${URGENCY_VALUES.join('|')}",` +
     '"title":"2-4 word name for the request, e.g. Heating not working","summary":"one sentence in English telling the craftsman what is wrong","reasons":["short reason for the urgency"]}. ' +
     `Today is ${new Date().toDateString()}. A heating outage between October and April is at least "high". ` +
-    'A gas smell is "emergency". Radiators, boilers and thermostats are always "heating". Furniture, doors, windows, blinds and other small fixes are "general".'
+    'A gas smell is "emergency". Radiators, boilers and thermostats are always "heating". Furniture, doors, windows, blinds and other small fixes are "general". ' +
+    'If nothing needs fixing and the tenant wants a service or information (internet, electricity or gas contract, insurance, moving, cleaning, registration, keys, parking), the trade is "service", urgency "low", and the title names the service (e.g. "Internet contract").'
   );
 }
 
@@ -164,6 +165,11 @@ function ruleTitle(t, trade) {
   if (trade === 'plumbing') return t.includes('leak') || t.includes('tropft') ? 'Water leak' : 'Plumbing problem';
   if (['sofa', 'couch', 'furniture', 'möbel', 'wardrobe', 'schrank', 'shelf', 'regal'].some((w) => t.includes(w))) return 'Broken furniture';
   if (['door', 'window', 'tür', 'fenster', 'blind', 'rollladen'].some((w) => t.includes(w))) return 'Door or window problem';
+  if (/(internet|wifi|wlan|broadband|fibre|glasfaser)/.test(t)) return 'Internet connection';
+  if (/(electricity|energy|strom|gas contract|tariff)/.test(t) && !/(no power|outage|fuse)/.test(t)) return 'Energy contract';
+  if (/(insurance|versicherung|liability)/.test(t)) return 'Insurance';
+  if (/(moving|umzug|removal)/.test(t)) return 'Moving help';
+  if (/(cleaning|reinigung)/.test(t)) return 'Cleaning service';
   if (trade === 'electrical') return 'Electrical problem';
   if (trade === 'locksmith') return 'Lock or key problem';
   return 'Repair request';

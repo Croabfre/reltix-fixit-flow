@@ -111,6 +111,7 @@ app.post('/cases/:id/escalate', wrap((req) => flow.escalate(req.params.id, req.b
 app.post('/cases/:id/confirm-slot', wrap((req) => flow.confirmSlot(req.params.id, req.body)));
 app.post('/cases/:id/no-slot-fits', wrap((req) => flow.noSlotFits(req.params.id, req.body ?? {})));
 app.get('/stats', wrap((req) => buildStats(getDb(), { city: String(req.query.city ?? 'all'), weeks: Math.min(52, Math.max(4, Number(req.query.weeks) || 26)) })));
+app.post('/cases/:id/close', wrap((req) => flow.closeRequest(req.params.id, req.body ?? {})));
 app.post('/cases/:id/assign', wrap((req) => flow.assign(req.params.id, req.body)));
 app.post('/units/:id/tenancy', wrap((req) => flow.changeTenant(req.params.id, req.body)));
 app.get('/units/:id/current-tenant', wrap((req) => {
@@ -175,7 +176,7 @@ app.get('/search', wrap((req) => {
   return {
     query: q,
     cities: [...new Set(db.properties.map((p) => p.city))],
-    needs_approval: db.cases.filter((c) => c.status === 'awaiting_pm_approval' || c.status === 'escalated' || c.needs_pm_reply).map((c) => ({ id: c.id, unit_id: c.unit_id, title: c.title, status: c.status, needs_reply: !!c.needs_pm_reply })),
+    needs_approval: db.cases.filter((c) => c.status === 'awaiting_pm_approval' || c.status === 'escalated' || c.needs_pm_reply).map((c) => ({ id: c.id, unit_id: c.unit_id, title: c.title, status: c.status, needs_reply: !!c.needs_pm_reply, reason: c.handover_reason ?? null })),
     units: want('units') ? { total: units.length, items: strip(units) } : null,
     buildings: want('buildings') && tokens.length ? { total: buildings.length, items: strip(buildings) } : null,
     people: want('people') ? { total: people.length, items: strip(people) } : null,

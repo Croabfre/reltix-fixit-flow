@@ -2,6 +2,7 @@
 // event (timeline) and, where a person is told something, as a message.
 import { getDb, save, id, now } from './store.js';
 import { triage, llm, aiProvider } from './triage.js';
+import { offersFor, connectivityFor, GENERAL_ANSWERS, serviceCategory, ruleServiceReply } from './services.js';
 import { matchPartners, estimate, overlapsBusy } from './matching.js';
 import { buildPayload, contextFor, consentFields, FIELD_LABELS } from './connector.js';
 
@@ -34,6 +35,7 @@ export const STATUS_LABELS = {
   partner_declined: 'Partner declined',
   no_slot_fits: 'Needs other times',
   escalated: 'Escalated to PM',
+  service_request: 'Service request',
 };
 
 function event(type, kase, data = {}, actor = 'centrix') {
@@ -90,8 +92,30 @@ export async function createCase({ unit_id, contact_id, text, photos = [] }) {
   message(kase, { channel: 'portal', from: tenant.name, to: 'centrix', text: kase.text });
 
   const t = await triage(kase.text, { useAi: db.settings.ai_triage });
+  // Not a repair but a service (internet, energy, insurance, moving…)? Then there is
+  // nobody to send – the assistant answers with offers from partners instead.
+  const svc = serviceCategory(kase.text);
+  if (t.trade === 'service' || (svc && svc !== 'other' && ['general', 'electrical'].includes(t.trade))) {
+    t.trade = 'service';
+    t.urgency = 'low';
+  }
   Object.assign(kase, { title: t.title, trade: t.trade, urgency: t.urgency, summary: t.summary, triage: t });
   setStatus(kase, 'triaged', { actor: t.source === 'ai' ? 'centrix AI' : 'centrix rules', note: `${t.trade}, urgency ${t.urgency}` });
+
+  if (t.trade === 'service') {
+    kase.service_category = svc ?? t.service_category ?? 'other';
+    setStatus(kase, 'service_request', { actor: 'centrix', note: kase.service_category });
+    save();
+    const answer = await assistantReply(kase, tenant);
+    message(kase, { channel: 'portal', from: 'centrix', to: tenant.name, text: answer.text, author: answer.ai ? 'assistant' : 'system' });
+    if (answer.handover) {
+      kase.needs_pm_reply = true;
+      kase.handover_reason = answer.handover;
+      event('case.handover', kase, { reason: answer.handover }, 'reltix assistant');
+    }
+    save();
+    return kase;
+  }
 
   message(kase, {
     channel: 'portal',
@@ -222,6 +246,7 @@ export async function postMessage(caseId, { text, from = 'tenant' }) {
     message(kase, { channel: 'portal', from: 'centrix', to: tenant.name, text: answer.text, author: answer.ai ? 'assistant' : 'system' });
     if (answer.handover) {
       kase.needs_pm_reply = true;
+      kase.handover_reason = answer.handover;
       event('case.handover', kase, { reason: answer.handover }, 'reltix assistant');
     }
     save();
@@ -251,7 +276,11 @@ function assistantContext(kase, tenant) {
     craftsman: shown && partner ? { company: partner.name, contact: partner.contact_person } : 'not booked yet – waiting for the property manager to approve',
     appointment: slot ? fmtSlot(slot) : offered.length ? `options offered: ${offered.join('; ')} (tenant picks one in the chat)` : 'none yet',
     cost_for_tenant: 'Repairs to the flat and building are paid by the landlord. The tenant pays nothing, unless the damage was caused by the tenant – the property manager decides that, never the assistant.',
-    building: { heating: property.heating_label, heating_system: property.heating_system?.make, ...(property.house_info ?? {}) },
+    flat_size_sqm: unit.size_sqm,
+    building: { heating: property.heating_label, heating_system: property.heating_system?.make, connectivity: connectivityFor(property), ...(property.house_info ?? {}) },
+    // Partner offers the tenant can get through reltix – the only providers and prices the assistant may name.
+    services: offersFor(property).map((o) => ({ category: o.category, provider: o.provider, product: o.product, price: o.price, how: o.setup, data_needed: o.data_needed })),
+    everyday_answers: GENERAL_ANSWERS,
   };
 }
 
@@ -262,21 +291,33 @@ async function assistantReply(kase, tenant) {
     ai: false,
     handover: 'no AI available',
   };
-  if (!aiProvider() || !db.settings.ai_triage) return fallback;
+  if (!aiProvider() || !db.settings.ai_triage) {
+    if (kase.trade === 'service') {
+      const unit = db.units.find((u) => u.id === kase.unit_id);
+      const property = db.properties.find((p) => p.id === unit.property_id);
+      const text = ruleServiceReply(kase.service_category, property, tenant.name.split(' ')[0]);
+      return { text, ai: false, handover: kase.service_category === 'other' ? 'question for the property manager' : null };
+    }
+    return fallback;
+  }
   const history = db.messages
     .filter((m) => m.case_id === kase.id && m.channel === 'portal')
     .slice(-12)
     .map((m) => ({ role: m.from === 'centrix' ? 'assistant' : 'user', content: m.text }));
   const system =
-    'You are the reltix assistant in a German property manager\'s tenant portal. You answer the tenant inside the chat of one repair request. ' +
+    'You are the reltix assistant in a German property manager\'s tenant portal. You answer the tenant inside the chat of one request – a repair, or a question about services around the flat. ' +
     'Answer in English by default, even if the tenant writes in another language; switch only if the tenant explicitly asks for another language. Be warm and brief (max 3 sentences). Use ONLY the facts in CONTEXT and do not offer help you cannot give. ' +
     'Never invent dates, prices, names or promises. Never discuss other tenants, the owner, rent amounts or legal disputes. ' +
     'If the question needs a human (complaints, money, rent reduction, damage blame, anything not in CONTEXT), say the property manager will reply here, ' +
     'and set handover. For danger (gas smell, flooding, fire) tell them the emergency steps from CONTEXT first. ' +
+    'SERVICES: if the tenant needs internet, electricity/gas, insurance, moving, cleaning or similar, recommend the 1–3 best matching offers from CONTEXT.services ' +
+    '(provider, product, price, what happens next; for internet only what the building supports) and explain anything relevant from CONTEXT (e.g. the landlord\'s insurance does not cover the tenant\'s belongings; the meter number is already on file). ' +
+    'Then offer: "Shall I ask <provider> to send you a pre-filled offer? You only confirm it." When the tenant says yes to a specific offer, confirm that the request is on its way ' +
+    'and set handover to "Service lead: <provider> <product>". For everyday questions use CONTEXT.everyday_answers. Never name providers or prices that are not in CONTEXT. ' +
     'Reply as JSON: {"reply":"...","handover":null or "short reason"}.\n\nCONTEXT:\n' +
     JSON.stringify(assistantContext(kase, tenant), null, 1);
   try {
-    const raw = await llm(system, history, { json: true, maxTokens: 350 });
+    const raw = await llm(system, history, { json: true, maxTokens: 450 });
     const parsed = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
     if (!parsed.reply?.trim()) throw new Error('empty reply');
     return { text: parsed.reply.trim(), ai: true, handover: parsed.handover || null };
@@ -284,6 +325,17 @@ async function assistantReply(kase, tenant) {
     console.warn('[assistant] failed:', err.message);
     return fallback;
   }
+}
+
+/** PM marks a service request as done (offer sent to the tenant, question answered). */
+export function closeRequest(caseId, { note } = {}) {
+  const kase = find('cases', caseId);
+  if (kase.status !== 'service_request') throw new FlowError('Only service requests can be closed this way.');
+  kase.needs_pm_reply = false;
+  kase.resolved_at = now();
+  setStatus(kase, 'closed', { actor: 'Property manager', note: note ?? kase.handover_reason ?? 'answered' });
+  save();
+  return kase;
 }
 
 /** PM picks a partner by hand (e.g. after escalation) – counts as approval. */

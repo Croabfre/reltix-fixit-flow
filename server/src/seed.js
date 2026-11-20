@@ -41,6 +41,7 @@ export function buildSeed() {
           last_service: '2025-10-14',
         },
         energy_certificate: { class: 'E', valid_until: '2029-03-31' },
+        connectivity: { fibre: true, cable: true, dsl: 100 },
         owner_contact_id: 'c_101',
         caretaker: 'Peters Handyman Services, +49 241 0000000',
         house_info: {
@@ -52,7 +53,7 @@ export function buildSeed() {
           heating_tips: 'Thermostat setting 3 is about 20 °C. A radiator key for bleeding radiators is available from the caretaker. System pressure should be 1.2–2.0 bar.',
           bikes_parking: 'Bike room in the courtyard (key from the caretaker). No private parking spaces.',
           rent: 'Rent is due by the 3rd working day of the month; bank details are in your lease. Questions about the service charge statement go to your property manager.',
-          internet: 'The building has fibre (City Fibre). Choose any provider; the connection box is in the basement.',
+          internet: 'The building is connected to fibre (connection box in the basement), cable TV and DSL.',
         },
       },
       {
@@ -66,6 +67,7 @@ export function buildSeed() {
         heating_label: 'District heating',
         heating_system: { make: 'District heating transfer station', installed: 2019, location: 'Basement, utility room', last_service: '2025-09-02' },
         energy_certificate: { class: 'D', valid_until: '2031-06-30' },
+        connectivity: { fibre: false, cable: true, dsl: 250 },
         owner_contact_id: 'c_102',
         caretaker: 'Peters Handyman Services, +49 241 0000000',
         house_info: {
@@ -87,6 +89,7 @@ export function buildSeed() {
         heating_label: 'Gas central heating',
         heating_system: { make: 'Heatline Condens 172', installed: 2017, location: 'Attic', last_service: '2025-11-03' },
         energy_certificate: { class: 'C', valid_until: '2030-01-31' },
+        connectivity: { fibre: false, cable: false, dsl: 250 },
         owner_contact_id: 'c_103',
         caretaker: 'Köln Home Services, +49 221 0000000',
         house_info: {
@@ -581,6 +584,7 @@ function addGeneratedPortfolio(db, buildingCount) {
       heating_system: { make: pick(makes), installed: Math.max(year, int(2005, 2023)), location: hType === 'district' ? 'Basement, utility room' : 'Basement, boiler room', last_service: `2026-${String(int(1, 9)).padStart(2, '0')}-${String(int(1, 28)).padStart(2, '0')}` },
       energy_certificate: { class: pick(['B', 'C', 'C', 'D', 'D', 'E', 'F', 'G']), valid_until: `20${int(27, 34)}-0${int(1, 9)}-30` },
       owner_contact_id: owner.id,
+      connectivity: { fibre: rnd() < 0.45, cable: rnd() < 0.7, dsl: pick([50, 100, 250]) },
       caretaker: `${c.city} Caretakers, +49 ${c.area} 0000000`,
     });
 

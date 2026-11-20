@@ -8,7 +8,7 @@ import { Button, Card, Display, ErrorNote, H2, KV, Label, Muted, P, Small, Statu
 import { colors, fonts, layout, radius, space } from '../lib/theme';
 
 const UNIT_ID = 'unit_4b'; // the demo flat; whoever currently rents it is "logged in"
-const QUICK = ['No heating since yesterday', 'No hot water', 'Radiator is leaking', 'Heating makes a loud noise'];
+const QUICK = ['No heating since yesterday', 'Radiator is leaking', 'I need an internet connection', 'Do I need contents insurance?', 'Help with moving out'];
 const OPEN = (c: any) => c.status !== 'closed';
 
 type Route = { name: 'home' } | { name: 'requests' } | { name: 'profile' } | { name: 'chat'; id: string };
@@ -150,7 +150,7 @@ function Composer({ onSent }: { onSent: (id: string) => void }) {
           onChangeText={setText}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder="Describe what's not working – one sentence is enough."
+          placeholder="Describe what's not working – or ask about internet, energy, insurance or moving."
           placeholderTextColor={colors.subtle}
           multiline
           style={st.composerInput}
@@ -173,7 +173,7 @@ function Composer({ onSent }: { onSent: (id: string) => void }) {
           </Pressable>
         ))}
       </View>
-      <Small style={{ textAlign: 'center' }}>We already know your flat, your heating and the building. No forms.</Small>
+      <Small style={{ textAlign: 'center' }}>Repairs, internet, energy, insurance, moving – we already know your flat and the building. No forms.</Small>
       <ErrorNote error={err} />
     </View>
   );
@@ -453,7 +453,7 @@ function tenantLabel(status: string) {
     reported: 'Received', triaged: 'Received', partner_matched: 'Finding craftsman', awaiting_pm_approval: 'Finding craftsman',
     partner_declined: 'Finding craftsman', escalated: "We're on it", job_sent: 'Craftsman contacted', job_accepted: 'Craftsman found',
     slot_offered: 'Pick a time', no_slot_fits: 'New times coming', slot_confirmed: 'Booked', in_progress: 'Repair underway',
-    completed: 'Repaired', invoiced: 'Repaired', closed: 'Resolved',
+    completed: 'Repaired', invoiced: 'Repaired', closed: 'Resolved', service_request: 'Answered',
   };
   return map[status] ?? status;
 }

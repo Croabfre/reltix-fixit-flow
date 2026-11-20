@@ -16,6 +16,7 @@
 | 1:40 | Tenant phone | Tap ★★★★★ | "Lena rates it, case closed. Same connector works for internet at move-in or a new energy contract – only the manifest changes." |
 
 **Backup paths to show if asked**
+- Tenant taps **I need an internet connection** → the assistant offers what the building supports (fibre, cable, DSL, 5G bridge) with prices → tenant replies "Yes, Fibre 500" → centrix shows *Service lead: Example Fibre Fibre 500*. Same for **Do I need contents insurance?** and **Help with moving out**.
 - Tenant asks in the chat "When is the paper bin collected?" → the reltix assistant answers from the house info; "Can I pay less rent?" → it hands over to the PM (centrix shows *Reply needed*).
 - centrix **Insights**: unsolved cases over time, new vs resolved per week, open cases by city (urgent vs routine), partner workload and changes, contract deadlines – updates live every few seconds.
 - centrix search: type a street, tenant or owner across ~1,150 units; filter by city or open cases.

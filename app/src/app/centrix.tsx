@@ -131,7 +131,7 @@ function SearchHome({
             <Pressable key={c.id} onPress={() => openUnit(c.unit_id, c.id)} style={({ hovered }: any) => [s.notice, hovered && { borderColor: colors.accent }]}>
               <View style={[s.dot, { backgroundColor: colors.accent }]} />
               <Text style={s.noticeText}>
-                {c.needs_reply ? 'Tenant is waiting for your reply' : c.status === 'escalated' ? 'Needs a partner picked by hand' : 'Needs your approval'}: <Text style={{ fontFamily: fonts.semibold }}>{c.title ?? 'Repair request'}</Text>
+                {c.reason?.startsWith('Service lead') ? c.reason : c.needs_reply ? 'Tenant is waiting for your reply' : c.status === 'escalated' ? 'Needs a partner picked by hand' : 'Needs your approval'}: <Text style={{ fontFamily: fonts.semibold }}>{c.title ?? 'Repair request'}</Text>
               </Text>
               <Text style={s.chev}>›</Text>
             </Pressable>
@@ -592,8 +592,13 @@ function CaseDetail({ kase, unit, refresh, back, wide }: { kase: any; unit: any;
             <Card>
               <Row style={{ justifyContent: 'space-between' }}>
                 <Label>Message the tenant</Label>
-                {kase.needs_pm_reply ? <StatusChip status="slot_offered" label="Assistant handed over – reply needed" /> : null}
+                {kase.needs_pm_reply ? <StatusChip status="slot_offered" label={kase.handover_reason ? `Handed over: ${kase.handover_reason}` : 'Assistant handed over – reply needed'} /> : null}
               </Row>
+              {kase.status === 'service_request' && (
+                <Small>
+                  Service request ({kase.service_category ?? 'other'}) – the assistant answered with partner offers. Close it once the offer is sent or the question is answered.
+                </Small>
+              )}
               <View style={{ flexDirection: 'row', gap: space(2), alignItems: 'flex-end' }}>
                 <TextInput
                   value={reply}
@@ -603,6 +608,9 @@ function CaseDetail({ kase, unit, refresh, back, wide }: { kase: any; unit: any;
                   multiline
                   style={s.replyInput}
                 />
+                {kase.status === 'service_request' && (
+                  <Button title="Mark done" variant="secondary" onPress={run(() => api(`/cases/${kase.id}/close`, 'POST', {}))} />
+                )}
                 <Button
                   title="Send"
                   disabled={!reply.trim()}
