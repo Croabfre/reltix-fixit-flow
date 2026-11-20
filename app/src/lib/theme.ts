@@ -170,6 +170,7 @@ export const statusTone: Record<string, Tone> = {
   partner_declined: tone.danger,
   no_slot_fits: tone.warning,
   escalated: tone.danger,
+  service_request: tone.info,
   // job states (partner side)
   sent: tone.warning,
   accepted: tone.accent,
