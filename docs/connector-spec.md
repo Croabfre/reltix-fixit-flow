@@ -29,7 +29,7 @@ In the demo, `{partner}` is `/connector/partners/{partner_id}` on our server (we
 {
   "spec_version": "1.0",
   "partner_id": "p_schmitz",
-  "name": "Wärmetechnik Schmitz GmbH",
+  "name": "Smith Heating Ltd",
   "category": "craftsman",
   "services": [
     {
@@ -110,9 +110,9 @@ The availability feed lists what the partner is **already doing** (`busy` blocks
   "service": "heating.repair",
   "case": { "trade": "heating", "urgency": "high", "reported_at": "2026-11-20T18:48:00Z" },
   "fields": {
-    "property.address": "Musterstraße 12, 52062 Aachen",
+    "property.address": "12 Sample Street, 52062 Aachen",
     "unit.floor": "2nd floor right (floor 2)",
-    "property.heating_system": { "type": "Gas central heating", "make": "Vaillant ecoTEC plus VC 206/5-5", "installed": 2014 },
+    "property.heating_system": { "type": "Gas central heating", "make": "ThermoMax Combi 24", "installed": 2014 },
     "case.summary": "Heating failure in the flat. Tenant: \"No heating since yesterday\""
   },
   "withheld": [ { "field": "tenant.phone", "reason": "awaiting tenant consent" } ]
@@ -152,7 +152,7 @@ When the resident later consents, centrix re-sends the job with the extra fields
 {
   "note": "Replaced ignition electrode",
   "invoice": { "hours": 1.5, "parts": [ { "text": "Ignition electrode", "amount_eur": 38.9 } ] },
-  "documents": [ { "type": "invoice", "url": "https://…/RE-2026-1001.pdf", "amount_eur": 225.98 } ]
+  "documents": [ { "type": "invoice", "url": "https://…/INV-2026-1001.pdf", "amount_eur": 225.98 } ]
 }
 ```
 
@@ -169,7 +169,7 @@ Document types: `invoice`, `report`, `contract`, `photo`, `certificate`. In the 
 
 ## How an internet provider would use the same spec
 
-Moment: `tenant.move_in` 10 days ahead. Partner: *Example Fibre GmbH*.
+Moment: `tenant.move_in` 10 days ahead. Partner: *Example Fibre Ltd*.
 
 | Part | Heating engineer | Internet provider |
 |---|---|---|

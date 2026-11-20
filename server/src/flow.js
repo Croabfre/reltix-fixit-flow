@@ -331,7 +331,7 @@ export function changeTenant(unitId, { name, email, phone, move_in }) {
   db.contracts.push(lease);
   db.documents.push({
     id: id('doc'), unit_id: unit.id, case_id: null, contract_id: lease.id, type: 'lease', title: `Lease agreement – ${tenant.name}`,
-    issuer: 'reltix Hausverwaltung', issued_at: now(), status: 'active', fields: [['Tenant', tenant.name], ['Start', tenant.move_in], ['Cold rent', lease.details.rent_cold_eur ? `€${lease.details.rent_cold_eur}` : '—']],
+    issuer: 'reltix Property Management', issued_at: now(), status: 'active', fields: [['Tenant', tenant.name], ['Start', tenant.move_in], ['Cold rent', lease.details.rent_cold_eur ? `€${lease.details.rent_cold_eur}` : '—']],
   });
   db.documents[db.documents.length - 1].url = `/documents/${db.documents[db.documents.length - 1].id}`;
   db.messages.push({ id: id('m'), unit_id: unit.id, case_id: null, channel: 'email', from: 'centrix', to: tenant.name, text: `Welcome to ${unit.label}! Your tenant portal is ready – report anything that needs fixing in one sentence.`, timestamp: now() });
@@ -510,9 +510,9 @@ export function partnerResult(jobId, body) {
     job_id: job.id,
     type: 'invoice',
     title: `Invoice ${partner.name}`,
-    number: `RE-${new Date().getFullYear()}-${String(db.documents.length + 1001)}`,
+    number: `INV-${new Date().getFullYear()}-${String(db.documents.length + 1001)}`,
     issuer: partner.name,
-    bill_to: `${owner?.name ?? 'Owner'} c/o reltix Hausverwaltung`,
+    bill_to: `${owner?.name ?? 'Owner'} c/o reltix Property Management`,
     lines,
     net_eur: net,
     vat_eur: vat,

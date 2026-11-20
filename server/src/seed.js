@@ -27,71 +27,71 @@ export function buildSeed() {
     properties: [
       {
         id: 'prop_musterstr_12',
-        address: 'Musterstraße 12, 52062 Aachen',
-        street: 'Musterstraße 12',
+        address: '12 Sample Street, 52062 Aachen',
+        street: '12 Sample Street',
         postcode: '52062',
         city: 'Aachen',
         building_year: 1972,
         heating_type: 'gas',
         heating_label: 'Gas central heating',
         heating_system: {
-          make: 'Vaillant ecoTEC plus VC 206/5-5',
+          make: 'ThermoMax Combi 24',
           installed: 2014,
           location: 'Basement, boiler room',
           last_service: '2025-10-14',
         },
         energy_certificate: { class: 'E', valid_until: '2029-03-31' },
         owner_contact_id: 'c_101',
-        caretaker: 'Hausmeisterservice Peters, +49 241 0000000',
+        caretaker: 'Peters Handyman Services, +49 241 0000000',
         house_info: {
           waste: 'Residual waste Tuesday, organic bin Wednesday, paper every second Thursday, yellow bags Friday. Bins are in the courtyard.',
-          caretaker_hours: 'Caretaker Hausmeisterservice Peters, Mon–Fri 8:00–16:00, +49 241 0000000.',
+          caretaker_hours: 'Caretaker Peters Handyman Services, Mon–Fri 8:00–16:00, +49 241 0000000.',
           emergency: 'Out of hours emergencies (water, gas smell, no heating at night): +49 241 0000099. Gas smell: leave the flat and call 112.',
           quiet_hours: 'Quiet hours 22:00–06:00 and all day on Sundays.',
           laundry: 'Laundry room in the basement, washing machines until 21:00.',
           heating_tips: 'Thermostat setting 3 is about 20 °C. A radiator key for bleeding radiators is available from the caretaker. System pressure should be 1.2–2.0 bar.',
           bikes_parking: 'Bike room in the courtyard (key from the caretaker). No private parking spaces.',
           rent: 'Rent is due by the 3rd working day of the month; bank details are in your lease. Questions about the service charge statement go to your property manager.',
-          internet: 'The building has fibre (Deutsche Glasfaser). Choose any provider; the connection box is in the basement.',
+          internet: 'The building has fibre (City Fibre). Choose any provider; the connection box is in the basement.',
         },
       },
       {
         id: 'prop_lothringer_40',
-        address: 'Lothringerstraße 40, 52070 Aachen',
-        street: 'Lothringerstraße 40',
+        address: '40 Lorraine Street, 52070 Aachen',
+        street: '40 Lorraine Street',
         postcode: '52070',
         city: 'Aachen',
         building_year: 1958,
         heating_type: 'district',
         heating_label: 'District heating',
-        heating_system: { make: 'STAWAG district heating transfer station', installed: 2019, location: 'Basement, utility room', last_service: '2025-09-02' },
+        heating_system: { make: 'District heating transfer station', installed: 2019, location: 'Basement, utility room', last_service: '2025-09-02' },
         energy_certificate: { class: 'D', valid_until: '2031-06-30' },
         owner_contact_id: 'c_102',
-        caretaker: 'Hausmeisterservice Peters, +49 241 0000000',
+        caretaker: 'Peters Handyman Services, +49 241 0000000',
         house_info: {
           waste: 'Residual waste Monday, paper Thursday, yellow bags every second Wednesday.',
-          caretaker_hours: 'Caretaker Hausmeisterservice Peters, Mon–Fri 8:00–16:00, +49 241 0000000.',
-          emergency: 'Out of hours emergencies: +49 241 0000099. District heating faults are reported to STAWAG by us.',
+          caretaker_hours: 'Caretaker Peters Handyman Services, Mon–Fri 8:00–16:00, +49 241 0000000.',
+          emergency: 'Out of hours emergencies: +49 241 0000099. District heating faults are reported to the city utility by us.',
           quiet_hours: 'Quiet hours 22:00–06:00 and Sundays.',
           heating_tips: 'District heating: no boiler in the flat. If all radiators are cold, tell us – the transfer station is in the basement.',
         },
       },
       {
         id: 'prop_venloer_210',
-        address: 'Venloer Straße 210, 50823 Köln',
-        street: 'Venloer Straße 210',
+        address: '210 Venlo Road, 50823 Köln',
+        street: '210 Venlo Road',
         postcode: '50823',
         city: 'Köln',
         building_year: 1995,
         heating_type: 'gas',
         heating_label: 'Gas central heating',
-        heating_system: { make: 'Buderus Logamax plus GB172', installed: 2017, location: 'Attic', last_service: '2025-11-03' },
+        heating_system: { make: 'Heatline Condens 172', installed: 2017, location: 'Attic', last_service: '2025-11-03' },
         energy_certificate: { class: 'C', valid_until: '2030-01-31' },
         owner_contact_id: 'c_103',
-        caretaker: 'Köln Haus Service, +49 221 0000000',
+        caretaker: 'Köln Home Services, +49 221 0000000',
         house_info: {
-          waste: 'AWB Köln: residual waste Wednesday, paper every second Monday, yellow bin Friday.',
-          caretaker_hours: 'Köln Haus Service, Mon–Fri 8:00–17:00, +49 221 0000000.',
+          waste: 'Köln waste services: residual waste Wednesday, paper every second Monday, yellow bin Friday.',
+          caretaker_hours: 'Köln Home Services, Mon–Fri 8:00–17:00, +49 221 0000000.',
           emergency: 'Out of hours emergencies: +49 221 0000099.',
           quiet_hours: 'Quiet hours 22:00–07:00 and Sundays.',
         },
@@ -107,7 +107,7 @@ export function buildSeed() {
         size_sqm: 54,
         rooms: 2,
         meters: [{ type: 'electricity', number: '1ESY1160123401' }],
-        access_notes: 'Ring at "Weber". Basement door code 4711.',
+        access_notes: 'Ring at "Webb". Basement door code 4711.',
       },
       {
         id: 'unit_4b',
@@ -120,7 +120,7 @@ export function buildSeed() {
           { type: 'electricity', number: '1ESY1160123456' },
           { type: 'heat', number: 'WMZ-0042-4B' },
         ],
-        access_notes: 'Ring at "Hoffmann". No lift. Basement door code 4711.',
+        access_notes: 'Ring at "Harper". No lift. Basement door code 4711.',
         furnishings: 'Partly furnished: built-in kitchen, living-room sofa and bedroom wardrobe belong to the landlord.',
       },
       {
@@ -131,25 +131,25 @@ export function buildSeed() {
         size_sqm: 82,
         rooms: 3,
         meters: [{ type: 'electricity', number: '1ESY1160123489' }],
-        access_notes: 'Ring at "Demir". No lift.',
+        access_notes: 'Ring at "Dempsey". No lift.',
       },
-      { id: 'unit_l1', property_id: 'prop_lothringer_40', label: '1st floor', floor: 1, size_sqm: 74, rooms: 3, meters: [{ type: 'electricity', number: '1ESY1160555101' }], access_notes: 'Ring at "Krämer".' },
-      { id: 'unit_l2', property_id: 'prop_lothringer_40', label: '2nd floor', floor: 2, size_sqm: 74, rooms: 3, meters: [{ type: 'electricity', number: '1ESY1160555102' }], access_notes: 'Ring at "Rossi".' },
-      { id: 'unit_v1', property_id: 'prop_venloer_210', label: 'Ground floor', floor: 0, size_sqm: 61, rooms: 2, meters: [{ type: 'electricity', number: '1KOE0021200101' }], access_notes: 'Ring at "Yılmaz". Bike room key with caretaker.' },
+      { id: 'unit_l1', property_id: 'prop_lothringer_40', label: '1st floor', floor: 1, size_sqm: 74, rooms: 3, meters: [{ type: 'electricity', number: '1ESY1160555101' }], access_notes: 'Ring at "Reed".' },
+      { id: 'unit_l2', property_id: 'prop_lothringer_40', label: '2nd floor', floor: 2, size_sqm: 74, rooms: 3, meters: [{ type: 'electricity', number: '1ESY1160555102' }], access_notes: 'Ring at "Ross".' },
+      { id: 'unit_v1', property_id: 'prop_venloer_210', label: 'Ground floor', floor: 0, size_sqm: 61, rooms: 2, meters: [{ type: 'electricity', number: '1KOE0021200101' }], access_notes: 'Ring at "Young". Bike room key with caretaker.' },
       { id: 'unit_v2', property_id: 'prop_venloer_210', label: '1st floor', floor: 1, size_sqm: 88, rooms: 4, meters: [{ type: 'electricity', number: '1KOE0021200102' }], access_notes: 'Vacant – keys with caretaker.' },
     ],
 
     contacts: [
-      { id: 'c_101', role: 'owner', name: 'Maria Becker', email: 'maria.becker@example.com', phone: '+49 160 00000001', unit_id: null },
-      { id: 'c_102', role: 'owner', name: 'Kaiser Wohnbau GmbH', email: 'verwaltung@kaiser-wohnbau.example', phone: '+49 241 0000010', unit_id: null },
-      { id: 'c_103', role: 'owner', name: 'Dr. Henrik Vogel', email: 'h.vogel@example.com', phone: '+49 170 00000011', unit_id: null },
-      { id: 'c_204', role: 'tenant', name: 'Tobias Krämer', email: 'tobias@example.com', phone: '+49 151 00000004', unit_id: 'unit_l1', move_in: '2022-03-01' },
-      { id: 'c_205', role: 'tenant', name: 'Sofia Rossi', email: 'sofia@example.com', phone: '+49 152 00000005', unit_id: 'unit_l2', move_in: '2023-07-15' },
-      { id: 'c_206', role: 'tenant', name: 'Mehmet Yılmaz', email: 'mehmet@example.com', phone: '+49 176 00000006', unit_id: 'unit_v1', move_in: '2020-10-01' },
-      { id: 'c_201', role: 'tenant', name: 'Jonas Weber', email: 'jonas@example.com', phone: '+49 152 00000002', unit_id: 'unit_1a', move_in: '2021-04-01' },
-      { id: 'c_190', role: 'former_tenant', name: 'Paul Schneider', email: 'paul.s@example.com', phone: '+49 151 00000009', unit_id: 'unit_4b', move_in: '2019-05-01', move_out: '2024-11-30' },
-      { id: 'c_202', role: 'tenant', name: 'Lena Hoffmann', email: 'lena@example.com', phone: '+49 151 00000000', unit_id: 'unit_4b', move_in: '2024-12-01' },
-      { id: 'c_203', role: 'tenant', name: 'Aylin Demir', email: 'aylin@example.com', phone: '+49 157 00000003', unit_id: 'unit_5c', move_in: '2019-08-15' },
+      { id: 'c_101', role: 'owner', name: 'Mary Baker', email: 'mary.baker@example.com', phone: '+49 160 00000001', unit_id: null },
+      { id: 'c_102', role: 'owner', name: 'Kingsway Homes Ltd', email: 'office@kingsway-homes.example', phone: '+49 241 0000010', unit_id: null },
+      { id: 'c_103', role: 'owner', name: 'Dr. Henry Fowler', email: 'h.fowler@example.com', phone: '+49 170 00000011', unit_id: null },
+      { id: 'c_204', role: 'tenant', name: 'Thomas Reed', email: 'tobias@example.com', phone: '+49 151 00000004', unit_id: 'unit_l1', move_in: '2022-03-01' },
+      { id: 'c_205', role: 'tenant', name: 'Sophie Ross', email: 'sofia@example.com', phone: '+49 152 00000005', unit_id: 'unit_l2', move_in: '2023-07-15' },
+      { id: 'c_206', role: 'tenant', name: 'Michael Young', email: 'mehmet@example.com', phone: '+49 176 00000006', unit_id: 'unit_v1', move_in: '2020-10-01' },
+      { id: 'c_201', role: 'tenant', name: 'Jonah Webb', email: 'jonas@example.com', phone: '+49 152 00000002', unit_id: 'unit_1a', move_in: '2021-04-01' },
+      { id: 'c_190', role: 'former_tenant', name: 'Paul Taylor', email: 'paul.s@example.com', phone: '+49 151 00000009', unit_id: 'unit_4b', move_in: '2019-05-01', move_out: '2024-11-30' },
+      { id: 'c_202', role: 'tenant', name: 'Lena Harper', email: 'lena@example.com', phone: '+49 151 00000000', unit_id: 'unit_4b', move_in: '2024-12-01' },
+      { id: 'c_203', role: 'tenant', name: 'Alice Dempsey', email: 'aylin@example.com', phone: '+49 157 00000003', unit_id: 'unit_5c', move_in: '2019-08-15' },
     ],
 
     contracts: [
@@ -160,7 +160,7 @@ export function buildSeed() {
       { id: 'ct_4', unit_id: 'unit_l1', type: 'lease', details: { tenant_contact_id: 'c_204', rent_cold_eur: 820, start: '2022-03-01' } },
       { id: 'ct_5', unit_id: 'unit_l2', type: 'lease', details: { tenant_contact_id: 'c_205', rent_cold_eur: 845, start: '2023-07-15' } },
       { id: 'ct_6', unit_id: 'unit_v1', type: 'lease', details: { tenant_contact_id: 'c_206', rent_cold_eur: 760, start: '2020-10-01' } },
-      { id: 'ct_10', unit_id: null, property_id: 'prop_musterstr_12', type: 'service', details: { provider: 'Hausmeisterservice Peters', scope: 'Caretaking, stairwell cleaning' } },
+      { id: 'ct_10', unit_id: null, property_id: 'prop_musterstr_12', type: 'service', details: { provider: 'Peters Handyman Services', scope: 'Caretaking, stairwell cleaning' } },
     ],
 
     // Partners plug in through the connector spec (see docs/connector-spec.md).
@@ -168,7 +168,7 @@ export function buildSeed() {
     partners: [
       {
         id: 'p_schmitz',
-        name: 'Wärmetechnik Schmitz GmbH',
+        name: 'Smith Heating Ltd',
         category: 'craftsman',
         trades: ['heating'],
         heating_types: ['gas', 'oil'],
@@ -176,13 +176,13 @@ export function buildSeed() {
         rating: 4.8,
         reviews: 212,
         hourly_rate: 68,
-        contact_person: 'Thomas Schmitz',
+        contact_person: 'Tom Smith',
         working_hours: { weekday: [7, 18], saturday: [8, 13] },
-        connector: manifest('p_schmitz', 'Wärmetechnik Schmitz GmbH', { callout: 49, hourly: 68 }),
+        connector: manifest('p_schmitz', 'Smith Heating Ltd', { callout: 49, hourly: 68 }),
       },
       {
         id: 'p_meyer',
-        name: 'Haustechnik Meyer',
+        name: 'Miller Building Services',
         category: 'craftsman',
         trades: ['heating', 'plumbing'],
         heating_types: ['gas', 'oil', 'district'],
@@ -190,13 +190,13 @@ export function buildSeed() {
         rating: 4.5,
         reviews: 97,
         hourly_rate: 62,
-        contact_person: 'Sandra Meyer',
+        contact_person: 'Sandra Miller',
         working_hours: { weekday: [7, 18], saturday: [8, 13] },
-        connector: manifest('p_meyer', 'Haustechnik Meyer', { callout: 39, hourly: 62 }),
+        connector: manifest('p_meyer', 'Miller Building Services', { callout: 39, hourly: 62 }),
       },
       {
         id: 'p_krueger',
-        name: 'Heizung Krüger & Sohn',
+        name: 'Cooper & Sons Heating',
         category: 'craftsman',
         trades: ['heating'],
         heating_types: ['gas'],
@@ -204,13 +204,13 @@ export function buildSeed() {
         rating: 4.9,
         reviews: 341,
         hourly_rate: 74,
-        contact_person: 'Ralf Krüger',
+        contact_person: 'Ralph Cooper',
         working_hours: { weekday: [7, 18], saturday: [8, 13] },
-        connector: manifest('p_krueger', 'Heizung Krüger & Sohn', { callout: 55, hourly: 74 }),
+        connector: manifest('p_krueger', 'Cooper & Sons Heating', { callout: 55, hourly: 74 }),
       },
       {
         id: 'p_eifel',
-        name: 'Eifel Wärmepumpen-Service',
+        name: 'Hillside Heat Pump Service',
         category: 'craftsman',
         trades: ['heating'],
         heating_types: ['heat_pump'],
@@ -218,14 +218,14 @@ export function buildSeed() {
         rating: 4.7,
         reviews: 58,
         hourly_rate: 79,
-        contact_person: 'Jan Lenzen',
+        contact_person: 'Ian Lawson',
         working_hours: { weekday: [7, 18], saturday: [8, 13] },
-        connector: manifest('p_eifel', 'Eifel Wärmepumpen-Service', { callout: 59, hourly: 79 }),
+        connector: manifest('p_eifel', 'Hillside Heat Pump Service', { callout: 59, hourly: 79 }),
       },
       // Handymen: everything that isn't a specialist trade (furniture, doors, locks, small fixes)
       {
         id: 'p_peters',
-        name: 'Hausmeisterservice Peters',
+        name: 'Peters Handyman Services',
         category: 'craftsman',
         trades: ['general', 'locksmith'],
         heating_types: [],
@@ -233,13 +233,13 @@ export function buildSeed() {
         rating: 4.6,
         reviews: 184,
         hourly_rate: 45,
-        contact_person: 'Uwe Peters',
+        contact_person: 'Owen Peters',
         working_hours: { weekday: [7, 18], saturday: [8, 13] },
-        connector: manifest('p_peters', 'Hausmeisterservice Peters', { callout: 29, hourly: 45 }, 'handyman'),
+        connector: manifest('p_peters', 'Peters Handyman Services', { callout: 29, hourly: 45 }, 'handyman'),
       },
       {
         id: 'p_koeln',
-        name: 'Köln Haus Service',
+        name: 'Köln Home Services',
         category: 'craftsman',
         trades: ['general', 'locksmith'],
         heating_types: [],
@@ -247,9 +247,9 @@ export function buildSeed() {
         rating: 4.4,
         reviews: 76,
         hourly_rate: 48,
-        contact_person: 'Selin Aydın',
+        contact_person: 'Selina Adams',
         working_hours: { weekday: [7, 18], saturday: [8, 13] },
-        connector: manifest('p_koeln', 'Köln Haus Service', { callout: 32, hourly: 48 }, 'handyman'),
+        connector: manifest('p_koeln', 'Köln Home Services', { callout: 32, hourly: 48 }, 'handyman'),
       },
     ],
 
@@ -268,7 +268,7 @@ export function buildSeed() {
         case_id: null,
         channel: 'email',
         from: 'centrix',
-        to: 'Lena Hoffmann',
+        to: 'Lena Harper',
         text: 'Reminder: annual heating service took place on 14 Oct. No action needed.',
         timestamp: at(-37, 10),
       },
@@ -309,27 +309,27 @@ function addHistory(db) {
   });
   db.documents.push({
     id: 'doc_hist_inv', case_id: id, unit_id: 'unit_4b', job_id: 'job_hist_tap', type: 'invoice',
-    title: 'Invoice Haustechnik Meyer', number: 'RE-2026-0917', issuer: 'Haustechnik Meyer',
-    bill_to: 'Maria Becker c/o reltix Hausverwaltung',
+    title: 'Invoice Miller Building Services', number: 'INV-2026-0917', issuer: 'Miller Building Services',
+    bill_to: 'Mary Baker c/o reltix Property Management',
     lines: [{ text: 'Call-out fee', qty: 1, unit_eur: 39 }, { text: 'Labour', qty: 0.5, unit_eur: 62 }, { text: 'Tap cartridge', qty: 1, unit_eur: 24.5 }],
     net_eur: 94.5, vat_eur: 17.96, amount_eur: 112.46, note: 'Replaced tap cartridge', issued_at: closed, url: '/documents/doc_hist_inv',
   });
   const msgs = [
-    [opened, 'portal', 'Lena Hoffmann', 'centrix', 'The kitchen tap keeps dripping even when it is fully closed.'],
-    [opened, 'portal', 'centrix', 'Lena Hoffmann', "Thanks Lena, we've got it. We're booking a plumbing specialist now – you'll pick an appointment right here, no calls needed."],
-    [at(-73, 9), 'portal', 'centrix', 'Lena Hoffmann', 'Haustechnik Meyer can come: Thu 10:00–12:00 · Fri 14:00–16:00. Tap the one that suits you.'],
-    [at(-73, 9, 20), 'portal', 'Lena Hoffmann', 'centrix', 'Booked Fri 14:00–16:00'],
-    [closed, 'portal', 'centrix', 'Lena Hoffmann', 'Repair done: replaced tap cartridge. How did it go?'],
-    [closed, 'email', 'centrix', 'Maria Becker', 'Tap repair in 2nd floor right done. Invoice RE-2026-0917: €112.46. Within budget, booked automatically.'],
+    [opened, 'portal', 'Lena Harper', 'centrix', 'The kitchen tap keeps dripping even when it is fully closed.'],
+    [opened, 'portal', 'centrix', 'Lena Harper', "Thanks Lena, we've got it. We're booking a plumbing specialist now – you'll pick an appointment right here, no calls needed."],
+    [at(-73, 9), 'portal', 'centrix', 'Lena Harper', 'Miller Building Services can come: Thu 10:00–12:00 · Fri 14:00–16:00. Tap the one that suits you.'],
+    [at(-73, 9, 20), 'portal', 'Lena Harper', 'centrix', 'Booked Fri 14:00–16:00'],
+    [closed, 'portal', 'centrix', 'Lena Harper', 'Repair done: replaced tap cartridge. How did it go?'],
+    [closed, 'email', 'centrix', 'Mary Baker', 'Tap repair in 2nd floor right done. Invoice INV-2026-0917: €112.46. Within budget, booked automatically.'],
   ];
   msgs.forEach(([timestamp, channel, from, to, text], i) => db.messages.push({ id: `m_hist_${i}`, unit_id: 'unit_4b', case_id: id, channel, from, to, text, timestamp }));
   [
-    [opened, 'case.created', { text: 'The kitchen tap keeps dripping even when it is fully closed.' }, 'Lena Hoffmann'],
+    [opened, 'case.created', { text: 'The kitchen tap keeps dripping even when it is fully closed.' }, 'Lena Harper'],
     [opened, 'case.status_changed', { to: 'awaiting_pm_approval', label: 'Awaiting approval' }, 'centrix'],
     [at(-74, 9), 'case.approved', { by: 'PM', estimate: { gross_eur: 157.08 } }, 'PM'],
-    [at(-73, 9, 20), 'job.scheduled', { slot: 'Fri 14:00–16:00' }, 'Lena Hoffmann'],
-    [closed, 'job.result', { amount_eur: 112.46 }, 'Haustechnik Meyer'],
-    [closed, 'case.status_changed', { to: 'closed', label: 'Closed', note: '5★' }, 'Lena Hoffmann'],
+    [at(-73, 9, 20), 'job.scheduled', { slot: 'Fri 14:00–16:00' }, 'Lena Harper'],
+    [closed, 'job.result', { amount_eur: 112.46 }, 'Miller Building Services'],
+    [closed, 'case.status_changed', { to: 'closed', label: 'Closed', note: '5★' }, 'Lena Harper'],
   ].forEach(([timestamp, type, data, actor], i) => db.events.push({ id: `ev_hist_${i}`, type, case_id: id, unit_id: 'unit_4b', actor, timestamp, data }));
 }
 
@@ -409,7 +409,7 @@ function manifest(partnerId, name, price, kind = 'heating') {
   };
 }
 
-// Earlier jobs for Wärmetechnik Schmitz: one completed, one declined, so the
+// Earlier jobs for Smith Heating: one completed, one declined, so the
 // partner app has a real history.
 function addPartnerHistory(db) {
   const prop = db.properties[0];
@@ -446,13 +446,13 @@ function addPartnerHistory(db) {
   });
   db.documents.push({
     id: 'doc_hist_rad', case_id: 'case_hist_rad', unit_id: 'unit_1a', job_id: 'job_hist_rad', type: 'invoice',
-    title: 'Invoice Wärmetechnik Schmitz GmbH', number: 'RE-2026-0988', issuer: 'Wärmetechnik Schmitz GmbH',
-    bill_to: 'Maria Becker c/o reltix Hausverwaltung',
+    title: 'Invoice Smith Heating Ltd', number: 'INV-2026-0988', issuer: 'Smith Heating Ltd',
+    bill_to: 'Mary Baker c/o reltix Property Management',
     lines: [{ text: 'Call-out fee', qty: 1, unit_eur: 49 }, { text: 'Labour', qty: 1, unit_eur: 68 }, { text: 'Thermostatic valve head', qty: 1, unit_eur: 21.4 }],
     net_eur: 138.4, vat_eur: 26.3, amount_eur: 164.7, note: 'Freed stuck thermostatic valve pin. Bled radiators', issued_at: end, url: '/documents/doc_hist_rad',
   });
 
-  // 2. Declined: boiler pressure in 3rd floor left, 3 weeks ago – went to Haustechnik Meyer instead
+  // 2. Declined: boiler pressure in 3rd floor left, 3 weeks ago – went to Miller Building Services instead
   const u3 = db.units.find((u) => u.id === 'unit_5c');
   db.cases.push({
     id: 'case_hist_pressure', unit_id: 'unit_5c', reporter_contact_id: 'c_203', title: 'Heating pressure keeps dropping',
@@ -480,7 +480,7 @@ function addUnitDocuments(db) {
     const ended = Boolean(ct.details.end);
     db.documents.push({
       id: `doc_lease_${ct.id}`, unit_id: ct.unit_id, case_id: null, contract_id: ct.id, type: 'lease',
-      title: `Lease agreement – ${tenant.name}`, issuer: 'reltix Hausverwaltung', issued_at: new Date(ct.details.start).toISOString(),
+      title: `Lease agreement – ${tenant.name}`, issuer: 'reltix Property Management', issued_at: new Date(ct.details.start).toISOString(),
       status: ended ? 'ended' : 'active',
       fields: [
         ['Tenant', tenant.name], ['Flat', `${unit.label}, ${unit.size_sqm} m², ${unit.rooms} rooms`], ['Start', ct.details.start],
@@ -490,7 +490,7 @@ function addUnitDocuments(db) {
     });
     db.documents.push({
       id: `doc_handover_${ct.id}`, unit_id: ct.unit_id, case_id: null, contract_id: ct.id, type: 'handover',
-      title: `Handover protocol (move-in) – ${tenant.name}`, issuer: 'reltix Hausverwaltung', issued_at: new Date(ct.details.start).toISOString(),
+      title: `Handover protocol (move-in) – ${tenant.name}`, issuer: 'reltix Property Management', issued_at: new Date(ct.details.start).toISOString(),
       status: ended ? 'ended' : 'active',
       fields: [['Keys handed over', '2 flat, 2 front door, 1 basement, 1 letterbox'], ['Meter readings', unit.meters.map((m) => `${m.type} ${m.number}`).join(', ')], ['Condition', 'Freshly painted, no defects noted']],
       url: `/documents/doc_handover_${ct.id}`,
@@ -526,25 +526,25 @@ function addGeneratedPortfolio(db, buildingCount) {
   const int = (a, b) => a + Math.floor(rnd() * (b - a + 1));
 
   const cities = [
-    { city: 'Aachen', share: 0.2, postcodes: ['52062', '52064', '52066', '52068', '52070', '52072'], rent: [9.5, 13.5], area: '241', streets: ['Jakobstraße', 'Pontstraße', 'Theaterstraße', 'Oppenhoffallee', 'Viktoriaallee', 'Boxgraben', 'Lütticher Straße', 'Roermonder Straße', 'Krefelder Straße', 'Adalbertsteinweg'] },
-    { city: 'Köln', share: 0.22, postcodes: ['50667', '50672', '50674', '50676', '50823', '50825', '50827', '51063'], rent: [12, 17], area: '221', streets: ['Aachener Straße', 'Subbelrather Straße', 'Neusser Straße', 'Severinstraße', 'Zülpicher Straße', 'Dürener Straße', 'Berrenrather Straße', 'Deutzer Freiheit', 'Ehrenfeldgürtel', 'Bonner Straße'] },
-    { city: 'Düsseldorf', share: 0.18, postcodes: ['40210', '40211', '40215', '40219', '40223', '40227', '40476'], rent: [12, 18], area: '211', streets: ['Kölner Straße', 'Bilker Allee', 'Lorettostraße', 'Nordstraße', 'Kaiserswerther Straße', 'Brunnenstraße', 'Ackerstraße', 'Bachstraße'] },
-    { city: 'Essen', share: 0.14, postcodes: ['45127', '45128', '45130', '45131', '45136', '45138', '45147'], rent: [7.5, 11], area: '201', streets: ['Rüttenscheider Straße', 'Alfredstraße', 'Steeler Straße', 'Frohnhauser Straße', 'Huyssenallee', 'Kahrstraße', 'Gemarkenstraße'] },
-    { city: 'Frankfurt am Main', share: 0.16, postcodes: ['60311', '60316', '60318', '60322', '60385', '60389', '60594'], rent: [15, 21], area: '69', streets: ['Berger Straße', 'Schweizer Straße', 'Leipziger Straße', 'Eckenheimer Landstraße', 'Oeder Weg', 'Mainzer Landstraße', 'Gutleutstraße'] },
-    { city: 'Berlin', share: 0.1, postcodes: ['10115', '10245', '10405', '10437', '10961', '12043', '12047'], rent: [13, 19], area: '30', streets: ['Kastanienallee', 'Boxhagener Straße', 'Sonnenallee', 'Oranienstraße', 'Schönhauser Allee', 'Weserstraße', 'Bergmannstraße'] },
+    { city: 'Aachen', share: 0.2, postcodes: ['52062', '52064', '52066', '52068', '52070', '52072'], rent: [9.5, 13.5], area: '241', streets: ['Jacob Street', 'Bridge Street', 'Theatre Street', 'Elm Avenue', 'Victoria Avenue', 'Moat Lane', 'Liège Road', 'Roermond Road', 'Krefeld Road', 'Abbey Way'] },
+    { city: 'Köln', share: 0.22, postcodes: ['50667', '50672', '50674', '50676', '50823', '50825', '50827', '51063'], rent: [12, 17], area: '221', streets: ['Aachen Road', 'Willow Street', 'Neuss Road', 'Severin Street', 'College Road', 'Church Road', 'Station Road', 'Harbour Street', 'Ring Road', 'Bonn Road'] },
+    { city: 'Düsseldorf', share: 0.18, postcodes: ['40210', '40211', '40215', '40219', '40223', '40227', '40476'], rent: [12, 18], area: '211', streets: ['Cologne Road', 'Park Avenue', 'Loretto Street', 'North Street', 'Kaiser Road', 'Fountain Street', 'Field Street', 'Brook Street'] },
+    { city: 'Essen', share: 0.14, postcodes: ['45127', '45128', '45130', '45131', '45136', '45138', '45147'], rent: [7.5, 11], area: '201', streets: ['Garden Street', 'Alfred Street', 'Steele Road', 'Meadow Lane', 'Huysen Avenue', 'Chapel Street', 'Market Street'] },
+    { city: 'Frankfurt am Main', share: 0.16, postcodes: ['60311', '60316', '60318', '60322', '60385', '60389', '60594'], rent: [15, 21], area: '69', streets: ['Hill Street', 'Swiss Street', 'Leipzig Road', 'Highland Road', 'Oak Way', 'Mainz Road', 'Good Lane'] },
+    { city: 'Berlin', share: 0.1, postcodes: ['10115', '10245', '10405', '10437', '10961', '12043', '12047'], rent: [13, 19], area: '30', streets: ['Chestnut Avenue', 'Forest Street', 'Sun Avenue', 'Orange Street', 'Bellevue Avenue', 'Weser Street', 'Mountain Street'] },
   ];
   const companies = [
-    'Rheinblick Immobilien GmbH', 'Lindenhof Wohnbau AG', 'Maas & Partner Grundbesitz KG', 'Domstadt Living GmbH', 'Westpark Residential GmbH',
-    'Ruhrstein Wohnen GmbH', 'Mainufer Asset Management GmbH', 'Spreequartier Immobilien GmbH', 'Hanse Nordwest Bestand GmbH', 'Familie Oster Vermögensverwaltung GbR',
-    'Altbau Erben GbR', 'Kranich Real Estate Fund I', 'Tilia Wohnen eG', 'Brückner & Söhne Grundstücks KG',
+    'Rhine View Property Ltd', 'Linden Court Homes plc', 'Maas & Partners Estates LLP', 'Cathedral City Living Ltd', 'Westpark Residential Ltd',
+    'Ruhr Stone Homes Ltd', 'Riverside Asset Management Ltd', 'Spree Quarter Property Ltd', 'Northwest Hanse Holdings Ltd', 'Oster Family Office',
+    'Old Town Heirs Partnership', 'Crane Real Estate Fund I', 'Linden Housing Co-op', 'Bruckner & Sons Estates',
   ];
-  const first = ['Anna', 'Lukas', 'Mia', 'Jonas', 'Emma', 'Leon', 'Sophie', 'Finn', 'Lea', 'Paul', 'Hannah', 'Ben', 'Lina', 'Elias', 'Marie', 'Noah', 'Clara', 'David', 'Ella', 'Tim', 'Sara', 'Murat', 'Elif', 'Can', 'Olga', 'Piotr', 'Fatima', 'Yusuf', 'Chiara', 'Marco', 'Nina', 'Felix', 'Laura', 'Jan', 'Amira', 'Theo', 'Greta', 'Karim', 'Ida', 'Moritz'];
-  const last = ['Müller', 'Schmidt', 'Schneider', 'Fischer', 'Weber', 'Meyer', 'Wagner', 'Becker', 'Schulz', 'Hoffmann', 'Koch', 'Richter', 'Klein', 'Wolf', 'Neumann', 'Schwarz', 'Zimmermann', 'Braun', 'Krüger', 'Hartmann', 'Lange', 'Werner', 'Krause', 'Lehmann', 'Köhler', 'Öztürk', 'Kaya', 'Nowak', 'Kowalski', 'Rossi', 'Ivanova', 'Hadžić', 'Nguyen', 'Bauer', 'Vogt', 'Arslan'];
+  const first = ['Anna', 'Luke', 'Mia', 'Jonah', 'Emma', 'Leo', 'Sophie', 'Finn', 'Lea', 'Paul', 'Hannah', 'Ben', 'Lily', 'Elias', 'Marie', 'Noah', 'Clara', 'David', 'Ella', 'Tim', 'Sarah', 'Matt', 'Ellie', 'Cal', 'Olivia', 'Peter', 'Fiona', 'Joseph', 'Chloe', 'Mark', 'Nina', 'Felix', 'Laura', 'Jack', 'Amy', 'Theo', 'Grace', 'Kevin', 'Ivy', 'Max'];
+  const last = ['Miller', 'Smith', 'Taylor', 'Fisher', 'Webb', 'Mayer', 'Walker', 'Baker', 'Shaw', 'Harper', 'Cook', 'Rich', 'Little', 'Wolfe', 'Newman', 'Black', 'Carpenter', 'Brown', 'Cooper', 'Hart', 'Long', 'Warner', 'Crane', 'Lee', 'Collins', 'Turner', 'Kay', 'Nolan', 'Kowal', 'Ross', 'Ivers', 'Hadley', 'Nguyen', 'Bauer', 'Vaughan', 'Archer'];
   const heating = [
-    ['gas', 'Gas central heating', ['Vaillant ecoTEC plus', 'Buderus Logamax plus GB172', 'Viessmann Vitodens 200-W', 'Wolf CGB-2']],
+    ['gas', 'Gas central heating', ['ThermoMax Combi 24', 'Heatline Condens 172', 'Northstar 200 Wall', 'Brightflame CGB-2']],
     ['district', 'District heating', ['District heating transfer station']],
-    ['heat_pump', 'Heat pump', ['Viessmann Vitocal 250-A', 'Stiebel Eltron WPL 25']],
-    ['oil', 'Oil central heating', ['Buderus Logano plus KB195i']],
+    ['heat_pump', 'Heat pump', ['AirSource 250', 'Greenair WPL 25']],
+    ['oil', 'Oil central heating', ['OilPro 195']],
   ];
   const floorName = (f) => (f === 0 ? 'Ground floor' : f === 1 ? '1st floor' : f === 2 ? '2nd floor' : f === 3 ? '3rd floor' : `${f}th floor`);
   const used = new Set(db.properties.map((p) => p.street));
@@ -558,7 +558,7 @@ function addGeneratedPortfolio(db, buildingCount) {
     let r = rnd(), c = cities[0];
     for (const x of cities) { if ((r -= x.share) <= 0) { c = x; break; } c = x; }
     let street;
-    do street = `${pick(c.streets)} ${int(1, 180)}`; while (used.has(street));
+    do street = `${int(1, 180)} ${pick(c.streets)}`; while (used.has(street));
     used.add(street);
     const postcode = pick(c.postcodes);
     const [hType, hLabel, makes] = pick(heating);
@@ -569,7 +569,7 @@ function addGeneratedPortfolio(db, buildingCount) {
     if (ro < 0.45) owner = pick(companyOwners);
     else {
       owner = ro < 0.6
-        ? { id: `c_${contactN++}`, role: 'owner', name: `WEG ${street}`, email: `weg-${contactN}@example.com`, phone: null, unit_id: null, owner_type: 'weg' }
+        ? { id: `c_${contactN++}`, role: 'owner', name: `Owners' Association, ${street}`, email: `weg-${contactN}@example.com`, phone: null, unit_id: null, owner_type: 'weg' }
         : { id: `c_${contactN++}`, role: 'owner', name: person(), email: `owner${contactN}@example.com`, phone: `+49 1${int(50, 79)} 0000${int(1000, 9999)}`, unit_id: null, owner_type: 'private' };
       db.contacts.push(owner);
     }
@@ -581,7 +581,7 @@ function addGeneratedPortfolio(db, buildingCount) {
       heating_system: { make: pick(makes), installed: Math.max(year, int(2005, 2023)), location: hType === 'district' ? 'Basement, utility room' : 'Basement, boiler room', last_service: `2026-${String(int(1, 9)).padStart(2, '0')}-${String(int(1, 28)).padStart(2, '0')}` },
       energy_certificate: { class: pick(['B', 'C', 'C', 'D', 'D', 'E', 'F', 'G']), valid_until: `20${int(27, 34)}-0${int(1, 9)}-30` },
       owner_contact_id: owner.id,
-      caretaker: `Hausmeisterdienst ${c.city}, +49 ${c.area} 0000000`,
+      caretaker: `${c.city} Caretakers, +49 ${c.area} 0000000`,
     });
 
     const floors = int(1, 5);
@@ -701,11 +701,11 @@ function addOperationsHistory(db) {
     }
   }
   const services = [
-    ['Caretaking', 'Hausmeisterdienst', 90],
-    ['Building insurance', 'Rheinland Versicherung (fictional)', 30],
-    ['Lift maintenance', 'Aufzugservice West (fictional)', 90],
-    ['Chimney sweep inspection', 'Bezirksschornsteinfeger', 0],
-    ['Stairwell cleaning', 'Glanz & Co Reinigung (fictional)', 30],
+    ['Caretaking', 'City Caretakers', 90],
+    ['Building insurance', 'Rhineland Insurance', 30],
+    ['Lift maintenance', 'West Lift Services', 90],
+    ['Chimney sweep inspection', 'District chimney sweep', 0],
+    ['Stairwell cleaning', 'Sparkle & Co Cleaning', 30],
   ];
   for (const p of db.properties.filter((x) => x.id.startsWith('prop_g') || x.id === 'prop_musterstr_12')) {
     for (const [kind, provider, notice] of [pick(services), pick(services)]) {
@@ -721,7 +721,7 @@ function addOperationsHistory(db) {
 }
 
 // Busy blocks for the next two weeks – other customers, quotes, paperwork.
-// Krüger is fully booked for five days, so matching visibly skips him.
+// Cooper & Sons is fully booked for five days, so matching visibly skips him.
 function partnerCalendars() {
   let seed = 777;
   const rnd = () => {
@@ -745,7 +745,7 @@ function partnerCalendars() {
       const dow = new Date(at(day, 12)).getDay();
       if (dow === 0) continue; // Sunday off
       if (pid === 'p_krueger' && day <= 5) {
-        add(pid, day, 7, dow === 6 ? 6 : 11, 'Heating replacement project (Eschweiler)');
+        add(pid, day, 7, dow === 6 ? 6 : 11, 'Heating replacement project');
         continue;
       }
       const starts = dow === 6 ? [8, 10] : [7, 9.5, 13, 15.5];

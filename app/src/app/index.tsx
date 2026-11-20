@@ -6,7 +6,7 @@ import { API, api, usePoll } from '../lib/api';
 import { useState } from 'react';
 
 const ROLES = [
-  { href: '/tenant', who: 'Tenant portal', name: 'Lena Hoffmann', device: 'Phone', text: 'Report a problem in one sentence, pick a slot in one tap.' },
+  { href: '/tenant', who: 'Tenant portal', name: 'Lena Harper', device: 'Phone', text: 'Report a problem in one sentence, pick a slot in one tap.' },
   { href: '/partner', who: 'Partner app', name: 'Heating engineer', device: 'Phone', text: 'Get a pre-filled job, offer slots, finish and invoice.' },
   { href: '/centrix', who: 'centrix workspace', name: 'reltix property manager', device: 'Laptop', text: 'See the AI suggestion, approve in one click, watch it close.' },
 ] as const;
