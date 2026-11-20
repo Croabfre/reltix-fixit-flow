@@ -24,4 +24,4 @@ Optional AI triage: copy `server/.env.example` to `server/.env` and set `OPENAI_
 - Full flow via API: `cd server && npm run smoke` (server must be running).
 
 ## Theme
-All colours, fonts and radii live in `app/src/lib/theme.ts`. Neutrals and type follow reltix.de (warm off-white, plum ink, Instrument Serif headlines, Inter body, pill tags); the accent is orange.
+All colours, fonts and radii live in `app/src/lib/theme.ts`. Colours and type are taken from reltix.de: Baskervville headlines, IBM Plex Sans text, plum #330933, cream #FCF6EF. Orange is only a small "needs attention" accent.
