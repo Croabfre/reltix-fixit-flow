@@ -16,6 +16,7 @@
 | 1:40 | Tenant phone | Tap ★★★★★ | "Lena rates it, case closed. Same connector works for internet at move-in or a new energy contract – only the manifest changes." |
 
 **Backup paths to show if asked**
+- Partner app → **History**: a completed job (work done, invoice lines, rating) and a declined one (reason, date). **Schedule**: the next two weeks with *Add to Google Calendar* and a calendar feed.
 - Partner taps **Fully booked** → centrix suggests *Haustechnik Meyer* automatically.
 - Tenant taps **None of these work for me** → partner sees "Tenant needs other times" and offers new slots.
 

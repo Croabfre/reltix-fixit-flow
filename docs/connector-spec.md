@@ -98,6 +98,8 @@ Available fields today: `property.address`, `property.heating_system`, `property
 
 Partners without a calendar API can publish slots in centrix and reference them in their `accepted` update (§6).
 
+**Calendar feed (centrix → partner):** `GET /connector/partners/{partner_id}/calendar.ics` returns every booked visit as iCalendar, so a partner can subscribe from Google Calendar, Outlook or Apple Calendar and never copy appointments by hand. Each visit can also be added on its own with a Google Calendar link from the partner app.
+
 ## 5. Place job / order
 
 `POST {partner}/jobs` → `201 { "job_id": "job_mwpbvgj8q" }`

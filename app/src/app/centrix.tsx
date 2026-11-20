@@ -144,6 +144,23 @@ function UnitRecord({ unit, openCase, wide }: { unit: any; openCase: (id: string
   const done = unit.cases.filter((c: any) => !OPEN(c));
   return (
     <>
+      {unit.documents.length > 0 && (
+        <View style={{ gap: space(4) }}>
+          <Label>Documents</Label>
+          <Card compact style={{ gap: 0 }}>
+            {unit.documents.map((d: any, i: number) => (
+              <Row key={d.id} style={{ justifyContent: 'space-between', paddingVertical: space(3), borderTopWidth: i ? StyleSheet.hairlineWidth : 0, borderTopColor: colors.border }}>
+                <View style={{ flex: 1 }}>
+                  <P style={{ fontFamily: fonts.medium }}>{d.type === 'invoice' ? `${d.title} · ${d.number}` : d.title}</P>
+                  <Small>{d.type === 'invoice' ? `${eur(d.amount_eur)} gross · ${fmtDay(d.issued_at)}` : `${d.note} · ${fmtDay(d.issued_at)}`}</Small>
+                </View>
+                {d.url ? <Button title="Open" size="sm" variant="secondary" onPress={() => Linking.openURL(API + d.url)} /> : null}
+              </Row>
+            ))}
+          </Card>
+        </View>
+      )}
+
       <Card>
         <Row style={{ justifyContent: 'space-between' }}>
           <View style={{ gap: 4 }}>
@@ -186,23 +203,6 @@ function UnitRecord({ unit, openCase, wide }: { unit: any; openCase: (id: string
           </Pressable>
         ))}
       </View>
-
-      {unit.documents.length > 0 && (
-        <View style={{ gap: space(4) }}>
-          <Label>Documents</Label>
-          <Card compact style={{ gap: 0 }}>
-            {unit.documents.map((d: any, i: number) => (
-              <Row key={d.id} style={{ justifyContent: 'space-between', paddingVertical: space(3), borderTopWidth: i ? StyleSheet.hairlineWidth : 0, borderTopColor: colors.border }}>
-                <View style={{ flex: 1 }}>
-                  <P style={{ fontFamily: fonts.medium }}>{d.type === 'invoice' ? `${d.title} · ${d.number}` : d.title}</P>
-                  <Small>{d.type === 'invoice' ? `${eur(d.amount_eur)} gross · ${fmtDay(d.issued_at)}` : `${d.note} · ${fmtDay(d.issued_at)}`}</Small>
-                </View>
-                {d.url ? <Button title="Open" size="sm" variant="secondary" onPress={() => Linking.openURL(API + d.url)} /> : null}
-              </Row>
-            ))}
-          </Card>
-        </View>
-      )}
 
       <CommunicationLog unit={unit} />
     </>

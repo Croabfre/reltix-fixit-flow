@@ -305,6 +305,7 @@ export function partnerStatus(jobId, body) {
     case 'declined': {
       job.status = 'declined';
       job.decline_reason = body.reason ?? 'no reason given';
+      job.declined_at = now();
       kase.declined_partner_ids.push(partner.id);
       setStatus(kase, 'partner_declined', { actor: partner.name, note: job.decline_reason });
       message(kase, { channel: 'system', from: partner.name, to: 'centrix', text: `Declined: ${job.decline_reason}` });
@@ -321,6 +322,7 @@ export function partnerStatus(jobId, body) {
     case 'completed': {
       job.status = 'completed';
       job.completion_note = body.note ?? null;
+      job.completed_at = now();
       setStatus(kase, 'completed', { actor: partner.name, note: body.note });
       message(kase, { channel: 'portal', from: 'centrix', to: tenant.name, text: `Repair done: ${body.note ?? 'heating is working again'}. How did it go?` });
       break;

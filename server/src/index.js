@@ -158,24 +158,70 @@ app.get('/connector/partners/:id/availability', wrap((req) => {
 }));
 
 // Partner inbox: jobs with the minimal payload (what the partner actually sees).
+function partnerJobView(db, j) {
+  const kase = db.cases.find((c) => c.id === j.case_id);
+  const unit = db.units.find((u) => u.id === kase.unit_id);
+  const property = db.properties.find((p) => p.id === unit.property_id);
+  const payload = structuredClone(j.payload);
+  // Once the tenant's consent has ended (case closed), the phone number is gone from the partner's view too.
+  const consentActive = db.consents.some((c) => c.case_id === kase.id && c.partner_id === j.partner_id && !c.expired_at && !c.revoked_at);
+  if (!consentActive && payload.fields['tenant.phone']) {
+    delete payload.fields['tenant.phone'];
+    payload.expired = ['tenant.phone'];
+  }
+  // A partner who declined only keeps the bare job, no further updates.
+  const declined = j.status === 'declined';
+  return {
+    ...j,
+    payload,
+    title: kase.title ?? `${kase.trade} repair`,
+    city: property.city,
+    case_status: declined ? 'declined' : kase.status,
+    case_status_label: declined ? 'Declined' : flow.STATUS_LABELS[kase.status],
+    offered_slots: db.slots.filter((s) => j.offered_slot_ids.includes(s.id)),
+    slot: db.slots.find((s) => s.id === j.slot_id) ?? null,
+    documents: declined ? [] : db.documents.filter((d) => d.job_id === j.id),
+    rating: declined ? null : kase.rating,
+    completed_at: j.completed_at ?? db.documents.find((d) => d.job_id === j.id && d.type === 'invoice')?.issued_at ?? null,
+  };
+}
+
 app.get('/connector/partners/:id/jobs', wrap((req) => {
   const db = getDb();
   return db.jobs
     .filter((j) => j.partner_id === req.params.id)
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .map((j) => {
-      const kase = db.cases.find((c) => c.id === j.case_id);
-      return {
-        ...j,
-        case_status: kase.status,
-        case_status_label: flow.STATUS_LABELS[kase.status],
-        offered_slots: db.slots.filter((s) => j.offered_slot_ids.includes(s.id)),
-        slot: db.slots.find((s) => s.id === j.slot_id) ?? null,
-        documents: db.documents.filter((d) => d.job_id === j.id),
-        rating: kase.rating,
-      };
-    });
+    .map((j) => partnerJobView(db, j));
 }));
+
+// Partner calendar as iCalendar: subscribe from Google Calendar ("From URL") or import the file.
+app.get('/connector/partners/:id/calendar.ics', (req, res) => {
+  const db = getDb();
+  const partner = db.partners.find((p) => p.id === req.params.id);
+  if (!partner) return res.status(404).send('Unknown partner');
+  const stamp = (iso) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const esc = (t) => String(t).replace(/\\/g, '\\\\').replace(/[,;]/g, (m) => `\\${m}`).replace(/\n/g, '\\n');
+  const events = db.jobs
+    .filter((j) => j.partner_id === partner.id && j.slot_id && j.status !== 'declined')
+    .map((j) => {
+      const slot = db.slots.find((s) => s.id === j.slot_id);
+      const kase = db.cases.find((c) => c.id === j.case_id);
+      const f = j.payload.fields;
+      return [
+        'BEGIN:VEVENT',
+        `UID:${j.id}@centrix.demo`,
+        `DTSTAMP:${stamp(new Date().toISOString())}`,
+        `DTSTART:${stamp(slot.start)}`,
+        `DTEND:${stamp(slot.end)}`,
+        `SUMMARY:${esc(`${kase.title ?? 'Repair'} – ${f['unit.floor'] ?? ''}`)}`,
+        `LOCATION:${esc(f['property.address'] ?? '')}`,
+        `DESCRIPTION:${esc(`${f['case.summary'] ?? ''}\nJob ${j.id} via centrix`)}`,
+        'END:VEVENT',
+      ].join('\r\n');
+    });
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//centrix demo//partner calendar//EN', `X-WR-CALNAME:${esc(partner.name)} – centrix jobs`, ...events, 'END:VCALENDAR'].join('\r\n');
+  res.type('text/calendar').set('content-disposition', `inline; filename="${partner.id}.ics"`).send(ics);
+});
 
 // Webhooks partner → centrix (spec §6, §7)
 app.post('/centrix/jobs/:id/status', wrap((req) => flow.partnerStatus(req.params.id, req.body)));

@@ -230,6 +230,7 @@ export function buildSeed() {
     events: [],
   };
   addHistory(db);
+  addPartnerHistory(db);
   return db;
 }
 
@@ -331,4 +332,65 @@ function manifest(partnerId, name, price) {
       result: '/centrix/jobs/{job_id}/result',
     },
   };
+}
+
+// Earlier jobs for Wärmetechnik Schmitz: one completed, one declined, so the
+// partner app has a real history.
+function addPartnerHistory(db) {
+  const prop = db.properties[0];
+  const fields = (unit, summary) => ({
+    'property.address': prop.address,
+    'unit.floor': `${unit.label} (floor ${unit.floor})`,
+    'property.heating_system': { type: prop.heating_label, ...prop.heating_system },
+    'property.building_year': prop.building_year,
+    'case.summary': summary,
+    'case.urgency': 'normal',
+    'case.photos': [],
+  });
+
+  // 1. Completed: radiator in ground floor left, 5 weeks ago
+  const u1 = db.units.find((u) => u.id === 'unit_1a');
+  const start = at(-35, 10);
+  const end = at(-35, 12);
+  db.slots.push({ id: 's_sch_hist', partner_id: 'p_schmitz', start, end, status: 'booked' });
+  db.cases.push({
+    id: 'case_hist_rad', unit_id: 'unit_1a', reporter_contact_id: 'c_201', title: 'Radiator stays cold',
+    text: 'The radiator in the living room stays cold, the others work.', photos: [], trade: 'heating', urgency: 'normal',
+    summary: 'One radiator in the living room stays cold, others are fine – likely air or a stuck valve.',
+    triage: { source: 'rules', trade: 'heating', urgency: 'normal', reasons: [] }, status: 'closed', partner_id: 'p_schmitz',
+    slot_id: 's_sch_hist', job_id: 'job_hist_rad', declined_partner_ids: [], match: null,
+    estimate: { service: 'heating.repair', net_eur: 151, gross_eur: 179.69 }, rating: { stars: 4, comment: null, at: end },
+    created_at: at(-37, 9), updated_at: end, resolved_at: end,
+  });
+  db.jobs.push({
+    id: 'job_hist_rad', case_id: 'case_hist_rad', partner_id: 'p_schmitz', status: 'invoiced',
+    payload: { job_ref: 'case_hist_rad', service: 'heating.repair', case: { trade: 'heating', urgency: 'normal' }, fields: fields(u1, 'One radiator in the living room stays cold, others are fine – likely air or a stuck valve.'), withheld: [] },
+    payload_history: [], offered_slot_ids: [], slot_id: 's_sch_hist', estimate: { gross_eur: 179.69 },
+    price_model: db.partners[0].connector.services[0].price_model,
+    completion_note: 'Freed stuck thermostatic valve pin. Bled radiators', created_at: at(-37, 9), completed_at: end,
+  });
+  db.documents.push({
+    id: 'doc_hist_rad', case_id: 'case_hist_rad', unit_id: 'unit_1a', job_id: 'job_hist_rad', type: 'invoice',
+    title: 'Invoice Wärmetechnik Schmitz GmbH', number: 'RE-2026-0988', issuer: 'Wärmetechnik Schmitz GmbH',
+    bill_to: 'Maria Becker c/o reltix Hausverwaltung',
+    lines: [{ text: 'Call-out fee', qty: 1, unit_eur: 49 }, { text: 'Labour', qty: 1, unit_eur: 68 }, { text: 'Thermostatic valve head', qty: 1, unit_eur: 21.4 }],
+    net_eur: 138.4, vat_eur: 26.3, amount_eur: 164.7, note: 'Freed stuck thermostatic valve pin. Bled radiators', issued_at: end, url: '/documents/doc_hist_rad',
+  });
+
+  // 2. Declined: boiler pressure in 3rd floor left, 3 weeks ago – went to Haustechnik Meyer instead
+  const u3 = db.units.find((u) => u.id === 'unit_5c');
+  db.cases.push({
+    id: 'case_hist_pressure', unit_id: 'unit_5c', reporter_contact_id: 'c_203', title: 'Heating pressure keeps dropping',
+    text: 'Heating pressure drops every few days, I keep refilling it.', photos: [], trade: 'heating', urgency: 'normal',
+    summary: 'System pressure drops every few days – possible leak or faulty expansion vessel.',
+    triage: { source: 'rules', trade: 'heating', urgency: 'normal', reasons: [] }, status: 'closed', partner_id: 'p_meyer',
+    slot_id: null, job_id: null, declined_partner_ids: ['p_schmitz'], match: null, rating: { stars: 5, comment: null, at: at(-19, 15) },
+    created_at: at(-22, 8), updated_at: at(-19, 15), resolved_at: at(-19, 15),
+  });
+  db.jobs.push({
+    id: 'job_hist_pressure', case_id: 'case_hist_pressure', partner_id: 'p_schmitz', status: 'declined',
+    decline_reason: 'Fully booked', declined_at: at(-22, 10),
+    payload: { job_ref: 'case_hist_pressure', service: 'heating.repair', case: { trade: 'heating', urgency: 'normal' }, fields: fields(u3, 'System pressure drops every few days – possible leak or faulty expansion vessel.'), withheld: [{ field: 'tenant.phone', label: 'Tenant phone', reason: 'awaiting tenant consent' }] },
+    payload_history: [], offered_slot_ids: [], slot_id: null, estimate: { gross_eur: 179.69 }, created_at: at(-22, 9),
+  });
 }
