@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { api, fmtDay, fmtSlot, fmtWhen, usePoll } from '../lib/api';
-import { Button, Card, Display, ErrorNote, H2, KV, Label, Muted, P, Small, StatusChip, Toggle, useWide } from '../lib/ui';
+import { Button, Card, Display, ErrorNote, H2, KV, Label, Muted, P, Small, StatusChip, Toggle, useWide, VersionFooter } from '../lib/ui';
 import { colors, fonts, layout, radius, space } from '../lib/theme';
 
 const UNIT_ID = 'unit_4b'; // the demo flat; whoever currently rents it is "logged in"
@@ -56,7 +55,7 @@ function Nav({ active, openCount, initials, go }: { active: string; openCount: n
   return (
     <View style={st.nav}>
       <View style={st.navInner}>
-        <Pressable onPress={() => go({ name: 'home' })} onLongPress={() => router.replace('/')} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
+        <Pressable onPress={() => go({ name: 'home' })} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
           <Text style={st.brand}>centrix</Text>
           <Text style={st.brandSub}>Tenant portal · demo</Text>
         </Pressable>
@@ -267,6 +266,7 @@ function Profile({ data }: { data: any }) {
             ))
           )}
         </Card>
+        <VersionFooter label="Tenant portal" />
       </View>
     </ScrollView>
   );

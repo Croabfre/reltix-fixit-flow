@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { API, api, eur, fmtDay, fmtSlot, fmtWhen, usePoll } from '../lib/api';
-import { Button, Card, Display, Divider, ErrorNote, H2, H3, KV, Label, Muted, P, Pill, Row, Small, StatusChip, Timeline, Toggle, useWide } from '../lib/ui';
+import { Button, Card, Display, Divider, ErrorNote, H2, H3, KV, Label, Muted, P, Pill, Row, Small, StatusChip, Timeline, Toggle, useWide, VersionFooter } from '../lib/ui';
 import { colors, fonts, layout, radius, shadow, space, statusTone } from '../lib/theme';
 import Insights from '../lib/insights';
 
@@ -28,7 +27,7 @@ export default function Centrix() {
     <SafeAreaView style={s.page} edges={['top', 'left', 'right']}>
       <View style={s.nav}>
         <View style={s.navInner}>
-          <Pressable onPress={() => setRoute({ name: 'search' })} onLongPress={() => router.replace('/')} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
+          <Pressable onPress={() => setRoute({ name: 'search' })} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
             <Text style={s.brand}>centrix</Text>
             <Text style={s.brandSub}>Workspace · demo</Text>
           </Pressable>
@@ -107,10 +106,35 @@ function SearchHome({
     return () => clearTimeout(t);
   }, [query]);
   const qs = new URLSearchParams({ q: debounced, ...filters }).toString();
-  const { data, error } = usePoll<any>(`/search?${qs}`, 4000);
+  const { data, error, refresh } = usePoll<any>(`/search?${qs}`, 4000);
   const [menu, setMenu] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const input = useRef<any>(null);
   const cityOptions = [['all', 'All cities'], ...((data?.cities ?? []) as string[]).map((c) => [c, c])];
+
+  // Plain matches waiting on a yes/no – the repetitive case at scale. Escalations,
+  // service leads and tenant replies always need a person to read them first.
+  const routine = (c: any) => c.status === 'awaiting_pm_approval' && !c.needs_reply && !c.reason;
+  const quickApprove = async (id: string) => {
+    setBusy(id);
+    try {
+      await api(`/cases/${id}/approve`, 'POST', {});
+      refresh();
+    } finally {
+      setBusy(null);
+    }
+  };
+  const approveAll = async () => {
+    const ids = (data?.needs_approval ?? []).filter(routine).map((c: any) => c.id);
+    setBusy('all');
+    try {
+      for (const id of ids) await api(`/cases/${id}/approve`, 'POST', {});
+      refresh();
+    } finally {
+      setBusy(null);
+    }
+  };
+  const routineCount = (data?.needs_approval ?? []).filter(routine).length;
 
   const sections = data
     ? [
@@ -127,14 +151,25 @@ function SearchHome({
 
       {data?.needs_approval?.length > 0 && (
         <View style={{ gap: space(2) }}>
+          {routineCount > 1 && (
+            <Row style={{ justifyContent: 'space-between', paddingHorizontal: space(1) }}>
+              <Small>{routineCount} routine matches are just waiting on a yes.</Small>
+              <Button title={`Approve all ${routineCount}`} size="sm" variant="secondary" disabled={busy === 'all'} onPress={approveAll} />
+            </Row>
+          )}
           {data.needs_approval.map((c: any) => (
-            <Pressable key={c.id} onPress={() => openUnit(c.unit_id, c.id)} style={({ hovered }: any) => [s.notice, hovered && { borderColor: colors.accent }]}>
-              <View style={[s.dot, { backgroundColor: colors.accent }]} />
-              <Text style={s.noticeText}>
-                {c.reason?.startsWith('Service lead') ? c.reason : c.needs_reply ? 'Tenant is waiting for your reply' : c.status === 'escalated' ? 'Needs a partner picked by hand' : 'Needs your approval'}: <Text style={{ fontFamily: fonts.semibold }}>{c.title ?? 'Repair request'}</Text>
-              </Text>
-              <Text style={s.chev}>›</Text>
-            </Pressable>
+            <View key={c.id} style={[s.notice, { paddingVertical: space(3) }]}>
+              <Pressable onPress={() => openUnit(c.unit_id, c.id)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
+                <View style={[s.dot, { backgroundColor: colors.accent }]} />
+                <Text style={s.noticeText}>
+                  {c.reason?.startsWith('Service lead') ? c.reason : c.needs_reply ? 'Tenant is waiting for your reply' : c.status === 'escalated' ? 'Needs a partner picked by hand' : 'Needs your approval'}: <Text style={{ fontFamily: fonts.semibold }}>{c.title ?? 'Repair request'}</Text>
+                </Text>
+              </Pressable>
+              {routine(c) && <Button title="Approve" size="sm" disabled={busy === c.id} onPress={() => quickApprove(c.id)} />}
+              <Pressable onPress={() => openUnit(c.unit_id, c.id)} hitSlop={8}>
+                <Text style={s.chev}>›</Text>
+              </Pressable>
+            </View>
           ))}
         </View>
       )}
@@ -223,7 +258,7 @@ function Settings() {
       {settings.data && (
         <Card>
           <Label>Rules</Label>
-          <P>Every job is approved by a property manager before it goes to a partner. Owner approval is needed above €{settings.data.owner_approval_above_eur}.</P>
+          <P>By default every job is approved by a property manager before it goes to a partner. Owner sign-off is always needed above €{settings.data.owner_approval_above_eur}, whatever else is set.</P>
           <Toggle
             value={!!settings.data.ai_triage}
             onChange={async (v) => {
@@ -237,8 +272,19 @@ function Settings() {
                 : 'No API key in server/.env – keyword rules are used and questions go to the property manager.'
             }
           />
+          <Divider />
+          <Toggle
+            value={settings.data.auto_approve_below_eur != null}
+            onChange={async (v) => {
+              await api('/settings', 'PATCH', { auto_approve_below_eur: v ? 150 : null });
+              settings.refresh();
+            }}
+            label="Auto-approve routine jobs under €150"
+            sub="Off by default. Only non-emergency jobs with a correctly matched partner go straight out – nothing above the owner's budget line, and every one is still logged with 'Auto-approved' in the timeline so it can be reviewed afterwards."
+          />
         </Card>
       )}
+      <VersionFooter label="centrix Workspace" />
     </View>
   );
 }
@@ -704,7 +750,7 @@ function eventTitle(e: any): string {
   switch (e.type) {
     case 'case.created': return 'Tenant reported via portal';
     case 'case.status_changed': return e.data.label;
-    case 'case.approved': return 'Approved by PM';
+    case 'case.approved': return e.data.by === 'Auto-approval rule' ? 'Auto-approved (under the rule)' : 'Approved by PM';
     case 'case.message': return e.data.from === 'pm' ? 'PM messaged tenant' : 'Tenant sent a message';
     case 'job.placed': return `Job placed with ${e.data.partner}`;
     case 'consent.given': return `Consent given to ${e.data.partner}`;

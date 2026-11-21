@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { API, api, eur, fmtDay, fmtSlot, fmtTime, fmtWhen, usePoll } from '../lib/api';
-import { Button, Card, Choice, Display, ErrorNote, H2, H3, KV, Label, Muted, P, Row, Small, StatusChip, useWide } from '../lib/ui';
+import { Button, Card, Choice, Display, ErrorNote, H2, H3, KV, Label, Muted, P, Row, Small, StatusChip, useWide, VersionFooter } from '../lib/ui';
 import { colors, fonts, layout, radius, space } from '../lib/theme';
 import CalendarGrid, { CalEvent } from '../lib/calendar';
 
@@ -32,7 +31,7 @@ export default function PartnerApp() {
     <SafeAreaView style={st.page} edges={['top', 'left', 'right']}>
       <View style={st.nav}>
         <View style={[st.navInner, narrow && { paddingHorizontal: 12 }]}>
-          <Pressable onPress={() => setRoute({ name: 'jobs' })} onLongPress={() => router.replace('/')} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
+          <Pressable onPress={() => setRoute({ name: 'jobs' })} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
             <Text style={[st.brand, narrow && { fontSize: 20 }]}>centrix</Text>
             {!narrow && <Text style={st.brandSub}>Partner</Text>}
           </Pressable>
@@ -269,6 +268,7 @@ function Profile({ partner, partners, onSwitch }: { partner: any; partners: any[
           ))}
         </Row>
       </View>
+      <VersionFooter label="Partner app" />
     </>
   );
 }

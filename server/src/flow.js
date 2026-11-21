@@ -407,9 +407,16 @@ function runMatch(kase) {
   kase.partner_id = m.chosen.partner_id;
   kase.estimate = m.chosen.estimate;
   setStatus(kase, 'partner_matched', { note: `${m.chosen.name} – ${m.reason}` });
-
-  // A person always approves before anything goes out – no automatic approval.
   setStatus(kase, 'awaiting_pm_approval');
+
+  // Optional, opt-in rule (off by default): low-cost, non-urgent, routine trades can
+  // go out without a human looking first. Emergencies and anything above the owner's
+  // budget line always wait for a person – the rule can never reach past that.
+  const rule = db.settings.auto_approve_below_eur;
+  const safe = kase.urgency !== 'emergency' && kase.estimate.gross_eur < Math.min(rule ?? 0, db.settings.owner_approval_above_eur);
+  if (rule != null && safe) {
+    approve(kase.id, { by: 'Auto-approval rule' });
+  }
 }
 
 export function approve(caseId, { by = 'Property manager' } = {}) {

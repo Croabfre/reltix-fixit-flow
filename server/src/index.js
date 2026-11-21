@@ -87,7 +87,7 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 app.get('/settings', wrap(() => ({ ...getDb().settings, ai_available: Boolean(aiProvider()), ai_provider: aiProvider() })));
 app.patch('/settings', wrap((req) => {
   const s = getDb().settings;
-  for (const k of ['owner_approval_above_eur', 'ai_triage']) if (k in req.body) s[k] = req.body[k];
+  for (const k of ['owner_approval_above_eur', 'auto_approve_below_eur', 'ai_triage']) if (k in req.body) s[k] = req.body[k];
   save();
   return s;
 }));

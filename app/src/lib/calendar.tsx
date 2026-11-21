@@ -114,10 +114,13 @@ export default function CalendarGrid({
                       key={ev.id}
                       onPress={ev.onPress}
                       disabled={!ev.onPress}
-                      style={[
+                      style={({ hovered, pressed }: any) => [
                         st.event,
                         { top: top + 1, height, backgroundColor: k.bg, borderLeftColor: k.border },
                         ev.kind === 'offered' && { borderStyle: 'dashed', borderWidth: 1, borderColor: colors.accent, borderLeftWidth: 3 },
+                        ev.onPress && hovered && { borderLeftWidth: 4, shadowColor: colors.ink, shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+                        ev.onPress && pressed && { opacity: 0.85 },
+                        ev.onPress ? ({ cursor: 'pointer' } as any) : null,
                       ]}
                     >
                       <Text style={[st.evTime, { color: k.sub }]}>
@@ -129,6 +132,7 @@ export default function CalendarGrid({
                       {ev.sub && height > 60 ? (
                         <Text style={[st.evSub, { color: k.sub }]} numberOfLines={1}>
                           {ev.sub}
+                          {ev.onPress ? ' · tap for details' : ''}
                         </Text>
                       ) : null}
                     </Pressable>

@@ -12,8 +12,20 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import Constants from 'expo-constants';
 import { button, card, colors, fonts, layout, radius, shadow, space, statusTone, type } from './theme';
 import { fmtWhen } from './api';
+
+/** app.json's `expo.version` – bump that file to change what shows here. */
+export const appVersion = Constants.expoConfig?.version ?? '1.0.0';
+
+export function VersionFooter({ label }: { label: string }) {
+  return (
+    <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.subtle, textAlign: 'center', paddingVertical: space(6) }}>
+      {label} · v{appVersion}
+    </Text>
+  );
+}
 
 export function useWide(min = 900) {
   return useWindowDimensions().width >= min;

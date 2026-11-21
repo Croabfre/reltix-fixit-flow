@@ -17,6 +17,18 @@ cd app && npm install && npx expo start         # press w for web, scan the QR w
 
 Phones in Expo Go reach the API on the laptop's LAN address automatically (same host as Metro). Override with `EXPO_PUBLIC_API_URL=http://<ip>:4000`.
 
+### Three separate sites, one role picker
+
+`/` is only a launcher for the demo – a role picker that links out to the three apps below. Once inside one of them there is no link, button or back-gesture back to `/` or to either of the other two: each is its own closed site, as it would be if they were deployed to three different domains.
+
+| Site | URL (web) | Who |
+|---|---|---|
+| Tenant portal | `http://localhost:8081/tenant` | the resident |
+| Partner app | `http://localhost:8081/partner` | the craftsman |
+| centrix workspace | `http://localhost:8081/centrix` | the property manager |
+
+Swap `localhost` for the LAN address Metro prints when opening on a phone.
+
 Optional AI triage: copy `server/.env.example` to `server/.env` and set `OPENAI_API_KEY` (model via `OPENAI_MODEL`, default `gpt-4.1-mini`) or `ANTHROPIC_API_KEY`. Restart the server; it prints which provider is active, and **AI triage** is switched on in centrix after a reset. The model's answer is validated (allowed trades/urgencies only); if the call fails or returns garbage, keyword rules are used, so the demo never depends on the LLM.
 
 - Data lives in `server/centrix.db` (SQLite, built into Node 22.13+). It is created from the seed on first start; `SEED_BUILDINGS=0 npm start` skips the ~150 generated buildings.

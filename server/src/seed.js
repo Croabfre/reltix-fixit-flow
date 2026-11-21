@@ -21,6 +21,9 @@ export function buildSeed() {
     settings: {
       // Above this amount the owner has to approve the cost
       owner_approval_above_eur: 500,
+      // Opt-in: non-emergency jobs under this amount skip the PM queue entirely
+      // (still logged, still capped by owner_approval_above_eur). Off by default.
+      auto_approve_below_eur: null,
       ai_triage: Boolean(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY),
     },
 
